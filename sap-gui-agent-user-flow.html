@@ -1,0 +1,1117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SAP GUI Agent — User Flow Walkthrough</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Instrument+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f6f5f0;
+    --bg-warm: #efeee8;
+    --surface: #ffffff;
+    --surface-alt: #fafaf7;
+    --border: #ddd9cf;
+    --border-light: #eae7df;
+    --text: #1a1815;
+    --text-mid: #4a463d;
+    --text-dim: #8a8479;
+    --accent: #0d6e4f;
+    --accent-light: #e8f5ef;
+    --accent-bg: rgba(13,110,79,0.06);
+    --sap: #0070f2;
+    --sap-light: #e8f1fd;
+    --teams: #6264A7;
+    --warn: #c4730a;
+    --warn-light: #fef4e4;
+    --error: #c23934;
+    --error-light: #fdeaea;
+    --success: #0d6e4f;
+    --step-line: #d4d0c6;
+    --mock-bg: #1e1e2e;
+    --mock-sidebar: #161622;
+    --mock-chat: #252535;
+    --mock-input: #2e2e42;
+    --mock-text: #c9c7bf;
+    --mock-accent: #4ade80;
+    --mock-dim: #6b6b80;
+    --mock-bubble-user: #3b3b55;
+    --mock-bubble-agent: #2a2a3e;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Instrument Sans', sans-serif;
+    line-height: 1.72;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .container { max-width: 860px; margin: 0 auto; padding: 0 2rem; }
+
+  /* ── HEADER ── */
+  header {
+    padding: 4.5rem 0 3rem;
+    border-bottom: 1px solid var(--border);
+  }
+  .eyebrow {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.72rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 1rem;
+  }
+  h1 {
+    font-size: 2.4rem;
+    font-weight: 700;
+    line-height: 1.18;
+    color: var(--text);
+    margin-bottom: 0.8rem;
+  }
+  .subtitle {
+    font-size: 1.05rem;
+    color: var(--text-mid);
+    max-width: 640px;
+  }
+
+  /* ── STEP SECTIONS ── */
+  .step-section {
+    padding: 3rem 0;
+    border-bottom: 1px solid var(--border-light);
+  }
+  .step-section:last-child { border-bottom: none; }
+
+  .step-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    margin-bottom: 1.6rem;
+  }
+  .step-num {
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    background: var(--accent);
+    color: white;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.82rem;
+    font-weight: 600;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+  .step-num.alt { background: var(--sap); }
+  .step-num.teams { background: var(--teams); }
+  .step-num.warn { background: var(--warn); }
+
+  .step-header-text h2 {
+    font-size: 1.25rem;
+    font-weight: 700;
+    line-height: 1.3;
+    margin-bottom: 0.2rem;
+  }
+  .step-header-text .when {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.72rem;
+    color: var(--text-dim);
+    letter-spacing: 0.03em;
+  }
+  p { margin-bottom: 1rem; color: var(--text-mid); }
+
+  /* ── CONTEXT BOX ── */
+  .context {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 1.2rem 1.4rem;
+    margin: 1.2rem 0;
+  }
+  .context.accent { border-left: 3px solid var(--accent); }
+  .context.sap { border-left: 3px solid var(--sap); }
+  .context.warn { border-left: 3px solid var(--warn); }
+  .context .label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 0.35rem;
+  }
+  .context .label.green { color: var(--accent); }
+  .context .label.blue { color: var(--sap); }
+  .context .label.orange { color: var(--warn); }
+  .context p { font-size: 0.88rem; margin-bottom: 0; }
+
+  /* ── APP MOCKUPS ── */
+  .mockup {
+    background: var(--mock-bg);
+    border-radius: 12px;
+    overflow: hidden;
+    margin: 1.5rem 0;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.18), 0 1px 3px rgba(0,0,0,0.1);
+    border: 1px solid rgba(255,255,255,0.06);
+  }
+  .mockup-bar {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.6rem 1rem;
+    background: rgba(0,0,0,0.25);
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+  }
+  .mockup-bar .dot { width: 9px; height: 9px; border-radius: 50%; }
+  .mockup-bar .dot.r { background: #ff5f57; }
+  .mockup-bar .dot.y { background: #febc2e; }
+  .mockup-bar .dot.g { background: #28c840; }
+  .mockup-bar .url {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.68rem;
+    color: var(--mock-dim);
+    margin-left: 0.8rem;
+    background: rgba(255,255,255,0.05);
+    padding: 0.2rem 0.7rem;
+    border-radius: 4px;
+    flex-grow: 1;
+    max-width: 300px;
+  }
+
+  .mockup-body {
+    display: flex;
+    min-height: 380px;
+  }
+  .mock-sidebar {
+    width: 220px;
+    background: var(--mock-sidebar);
+    border-right: 1px solid rgba(255,255,255,0.06);
+    padding: 1rem 0;
+    flex-shrink: 0;
+  }
+  .mock-sidebar .brand {
+    padding: 0 1rem 1rem;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+    margin-bottom: 0.8rem;
+  }
+  .mock-sidebar .brand-name {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--mock-accent);
+    letter-spacing: 0.02em;
+  }
+  .mock-sidebar .brand-sub {
+    font-size: 0.65rem;
+    color: var(--mock-dim);
+    margin-top: 0.15rem;
+  }
+  .mock-nav-item {
+    padding: 0.45rem 1rem;
+    font-size: 0.73rem;
+    color: var(--mock-dim);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    cursor: default;
+  }
+  .mock-nav-item.active {
+    background: rgba(74,222,128,0.08);
+    color: var(--mock-accent);
+    border-right: 2px solid var(--mock-accent);
+  }
+  .mock-nav-item .nav-icon { font-size: 0.85rem; width: 18px; text-align: center; }
+
+  .mock-main {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+  }
+  .mock-chat-area {
+    flex-grow: 1;
+    padding: 1.2rem 1.5rem;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 0.8rem;
+  }
+  .mock-msg {
+    max-width: 85%;
+    padding: 0.7rem 1rem;
+    border-radius: 10px;
+    font-size: 0.76rem;
+    line-height: 1.55;
+  }
+  .mock-msg.user {
+    background: var(--mock-bubble-user);
+    color: #e0dfd8;
+    align-self: flex-end;
+    border-bottom-right-radius: 3px;
+  }
+  .mock-msg.agent {
+    background: var(--mock-bubble-agent);
+    color: var(--mock-text);
+    align-self: flex-start;
+    border-bottom-left-radius: 3px;
+  }
+  .mock-msg .agent-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.62rem;
+    color: var(--mock-accent);
+    margin-bottom: 0.3rem;
+    letter-spacing: 0.04em;
+  }
+  .mock-msg .tool-tag {
+    display: inline-block;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.6rem;
+    padding: 0.12rem 0.4rem;
+    border-radius: 3px;
+    margin: 0.3rem 0.2rem 0.1rem 0;
+  }
+  .mock-msg .tool-tag.running { background: rgba(74,222,128,0.12); color: var(--mock-accent); }
+  .mock-msg .tool-tag.done { background: rgba(74,222,128,0.2); color: #6ee7a0; }
+  .mock-msg .tool-tag.warn { background: rgba(245,158,11,0.15); color: #fbbf24; }
+
+  .mock-input-area {
+    padding: 0.8rem 1.2rem;
+    border-top: 1px solid rgba(255,255,255,0.06);
+    display: flex;
+    gap: 0.6rem;
+    align-items: center;
+  }
+  .mock-input {
+    flex-grow: 1;
+    background: var(--mock-input);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 8px;
+    padding: 0.55rem 0.9rem;
+    color: var(--mock-text);
+    font-size: 0.76rem;
+    font-family: 'Instrument Sans', sans-serif;
+  }
+  .mock-input.placeholder { color: var(--mock-dim); }
+  .mock-btn {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.68rem;
+    padding: 0.5rem 0.9rem;
+    border-radius: 6px;
+    border: none;
+    cursor: default;
+  }
+  .mock-btn.send { background: var(--mock-accent); color: #111; }
+  .mock-btn.attach { background: rgba(255,255,255,0.06); color: var(--mock-dim); border: 1px solid rgba(255,255,255,0.1); }
+
+  /* Attachment preview in mock */
+  .mock-attachment {
+    background: rgba(255,255,255,0.04);
+    border: 1px dashed rgba(255,255,255,0.12);
+    border-radius: 8px;
+    padding: 0.8rem 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.7rem;
+    margin: 0.4rem 0;
+  }
+  .mock-attachment .file-icon {
+    width: 32px; height: 38px;
+    background: rgba(0,112,242,0.15);
+    border-radius: 4px;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.55rem;
+    color: #60a5fa;
+    flex-shrink: 0;
+  }
+  .mock-attachment .file-info .file-name {
+    font-size: 0.74rem;
+    color: var(--mock-text);
+    font-weight: 500;
+  }
+  .mock-attachment .file-info .file-meta {
+    font-size: 0.62rem;
+    color: var(--mock-dim);
+    margin-top: 0.1rem;
+  }
+  .mock-attachment .file-remove {
+    margin-left: auto;
+    font-size: 0.7rem;
+    color: var(--mock-dim);
+    cursor: default;
+  }
+
+  /* Drop zone overlay */
+  .mock-dropzone {
+    position: absolute;
+    inset: 0;
+    background: rgba(13,110,79,0.08);
+    border: 2px dashed var(--mock-accent);
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 0.5rem;
+    z-index: 2;
+  }
+  .mock-dropzone .dz-icon { font-size: 2rem; opacity: 0.7; }
+  .mock-dropzone .dz-text {
+    font-size: 0.82rem;
+    color: var(--mock-accent);
+    font-weight: 600;
+  }
+  .mock-dropzone .dz-sub {
+    font-size: 0.68rem;
+    color: var(--mock-dim);
+  }
+
+  /* SSO mock */
+  .mock-sso {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 380px;
+    padding: 2rem;
+  }
+  .sso-card {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 12px;
+    padding: 2.5rem 2rem;
+    text-align: center;
+    width: 320px;
+  }
+  .sso-card .sso-logo {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--mock-accent);
+    margin-bottom: 0.3rem;
+  }
+  .sso-card .sso-sub {
+    font-size: 0.72rem;
+    color: var(--mock-dim);
+    margin-bottom: 1.5rem;
+  }
+  .sso-card .sso-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.6rem;
+    background: #2b2b3f;
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 8px;
+    padding: 0.7rem 1.2rem;
+    color: var(--mock-text);
+    font-size: 0.8rem;
+    cursor: default;
+    margin-bottom: 0.7rem;
+  }
+  .sso-card .sso-btn .ms-icon {
+    width: 18px; height: 18px;
+    background: #00a4ef;
+    border-radius: 2px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.65rem; color: white;
+  }
+  .sso-card .sso-divider {
+    font-size: 0.65rem;
+    color: var(--mock-dim);
+    margin: 0.8rem 0;
+  }
+
+  /* Status card inside chat */
+  .mock-status-card {
+    background: rgba(13,110,79,0.08);
+    border: 1px solid rgba(74,222,128,0.15);
+    border-radius: 8px;
+    padding: 0.7rem 0.9rem;
+    margin-top: 0.4rem;
+  }
+  .mock-status-card .status-row {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.68rem;
+    padding: 0.15rem 0;
+  }
+  .mock-status-card .status-row .check { color: var(--mock-accent); }
+  .mock-status-card .status-row .pending { color: var(--mock-dim); }
+  .mock-status-card .status-row .label { color: var(--mock-text); }
+
+  /* Confirmation buttons mock */
+  .mock-confirm-btns {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+  }
+  .mock-confirm-btns .cbtn {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.65rem;
+    padding: 0.35rem 0.8rem;
+    border-radius: 5px;
+    cursor: default;
+  }
+  .cbtn.approve { background: rgba(74,222,128,0.15); color: var(--mock-accent); border: 1px solid rgba(74,222,128,0.2); }
+  .cbtn.reject { background: rgba(255,107,107,0.1); color: #f87171; border: 1px solid rgba(255,107,107,0.15); }
+
+  /* Workflow preview card */
+  .mock-wf-preview {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 8px;
+    padding: 0.8rem 1rem;
+    margin-top: 0.5rem;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.65rem;
+    line-height: 1.6;
+    color: var(--mock-dim);
+  }
+  .mock-wf-preview .wf-title {
+    color: var(--mock-accent);
+    font-weight: 600;
+    font-size: 0.72rem;
+    margin-bottom: 0.3rem;
+  }
+  .mock-wf-preview .wf-param {
+    color: #fbbf24;
+  }
+  .mock-wf-preview .wf-id {
+    color: #60a5fa;
+  }
+
+  /* Arrow between mockups */
+  .step-arrow {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.5rem 0;
+    color: var(--text-dim);
+    font-size: 1.4rem;
+  }
+
+  /* Responsive */
+  @media (max-width: 700px) {
+    h1 { font-size: 1.8rem; }
+    .mock-sidebar { width: 160px; }
+    .mockup-body { min-height: 300px; }
+    .mock-sidebar .brand-name { font-size: 0.7rem; }
+  }
+  @media (max-width: 520px) {
+    .mock-sidebar { display: none; }
+  }
+
+  footer {
+    padding: 3rem 0;
+    text-align: center;
+    color: var(--text-dim);
+    font-size: 0.75rem;
+    border-top: 1px solid var(--border-light);
+    margin-top: 1rem;
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+
+<!-- ═══ HEADER ═══ -->
+<header>
+  <div class="eyebrow">User Flow Walkthrough</div>
+  <h1>From app launch to<br>running a VBS workflow</h1>
+  <p class="subtitle">Every screen a corporate SAP user sees — from opening the web app for the first time to uploading a recorded VBS script and watching it become a reusable workflow.</p>
+</header>
+
+<!-- ═══ STEP 1: LAUNCH ═══ -->
+<div class="step-section">
+  <div class="step-header">
+    <div class="step-num">1</div>
+    <div class="step-header-text">
+      <h2>User opens the web app</h2>
+      <div class="when">sap-agent.yourcompany.com — browser or Teams tab</div>
+    </div>
+  </div>
+
+  <p>The user navigates to the company-hosted URL (or clicks the pinned Teams tab). Since this is behind corporate SSO, they see a login screen — one click with their Microsoft work account.</p>
+
+  <div class="mockup">
+    <div class="mockup-bar">
+      <span class="dot r"></span><span class="dot y"></span><span class="dot g"></span>
+      <span class="url">sap-agent.yourcompany.com</span>
+    </div>
+    <div class="mock-sso">
+      <div class="sso-card">
+        <div class="sso-logo">SAP Agent</div>
+        <div class="sso-sub">Automate SAP workflows with AI</div>
+        <div class="sso-btn">
+          <span class="ms-icon">⊞</span>
+          Sign in with Microsoft
+        </div>
+        <div class="sso-divider">Secured by Azure AD</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="context accent">
+    <div class="label green">What happens behind the scenes</div>
+    <p>Azure AD / Entra ID authenticates the user. The backend creates a session and checks if the SAP GUI bridge is connected. No API keys are shown — the server handles LLM auth via environment variables. The user's identity determines which SAP systems and workflows they can access.</p>
+  </div>
+</div>
+
+<!-- ═══ STEP 2: MAIN SCREEN ═══ -->
+<div class="step-section">
+  <div class="step-header">
+    <div class="step-num">2</div>
+    <div class="step-header-text">
+      <h2>Main screen loads — familiar chat interface</h2>
+      <div class="when">First thing they see after login</div>
+    </div>
+  </div>
+
+  <p>The user lands on a clean chat interface. The left sidebar shows navigation: chat (active), a workflow library, and batch jobs. The chat area has a welcome message explaining what the agent can do. The input bar at the bottom has a text field, an attachment button (📎), and a send button.</p>
+
+  <div class="mockup">
+    <div class="mockup-bar">
+      <span class="dot r"></span><span class="dot y"></span><span class="dot g"></span>
+      <span class="url">sap-agent.yourcompany.com/chat</span>
+    </div>
+    <div class="mockup-body">
+      <div class="mock-sidebar">
+        <div class="brand">
+          <div class="brand-name">SAP Agent</div>
+          <div class="brand-sub">v1.0 · Bridge connected ●</div>
+        </div>
+        <div class="mock-nav-item active"><span class="nav-icon">💬</span> Chat</div>
+        <div class="mock-nav-item"><span class="nav-icon">📋</span> Workflows</div>
+        <div class="mock-nav-item"><span class="nav-icon">📊</span> Batch Jobs</div>
+        <div class="mock-nav-item"><span class="nav-icon">⚙️</span> Settings</div>
+      </div>
+      <div class="mock-main">
+        <div class="mock-chat-area">
+          <div class="mock-msg agent">
+            <div class="agent-label">SAP AGENT</div>
+            Welcome! I can help you automate SAP transactions. Here's what I can do:<br><br>
+            <strong>• Run a workflow</strong> — "Create a PO for vendor 1000"<br>
+            <strong>• Upload a VBS recording</strong> — attach a .vbs file from SAP's script recorder<br>
+            <strong>• Batch process</strong> — attach an Excel file with multiple transactions<br><br>
+            What would you like to do?
+          </div>
+        </div>
+        <div class="mock-input-area">
+          <span class="mock-btn attach">📎</span>
+          <div class="mock-input placeholder">Type a message or drag a .vbs file here...</div>
+          <span class="mock-btn send">Send</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="context accent">
+    <div class="label green">Pi-web-ui in action</div>
+    <p>This entire screen is the <code>&lt;agent-interface&gt;</code> component from <code>pi-web-ui</code> wrapped in a thin shell with the sidebar. The chat panel, message streaming, attachment handling, and session persistence are all out-of-the-box. The sidebar + branding is the only custom UI we write.</p>
+  </div>
+</div>
+
+<!-- ═══ STEP 3: USER DECIDES TO UPLOAD VBS ═══ -->
+<div class="step-section">
+  <div class="step-header">
+    <div class="step-num">3</div>
+    <div class="step-header-text">
+      <h2>User decides to upload a VBS script</h2>
+      <div class="when">They have a recording from SAP's Script Recorder</div>
+    </div>
+  </div>
+
+  <p>The user previously recorded a transaction in SAP GUI (say, creating a sales order via VA01). SAP generated a <code>.vbs</code> file. Now they want to turn it into a reusable workflow. They either click the 📎 button or drag the file directly onto the chat.</p>
+
+  <div class="mockup">
+    <div class="mockup-bar">
+      <span class="dot r"></span><span class="dot y"></span><span class="dot g"></span>
+      <span class="url">sap-agent.yourcompany.com/chat</span>
+    </div>
+    <div class="mockup-body">
+      <div class="mock-sidebar">
+        <div class="brand">
+          <div class="brand-name">SAP Agent</div>
+          <div class="brand-sub">v1.0 · Bridge connected ●</div>
+        </div>
+        <div class="mock-nav-item active"><span class="nav-icon">💬</span> Chat</div>
+        <div class="mock-nav-item"><span class="nav-icon">📋</span> Workflows</div>
+        <div class="mock-nav-item"><span class="nav-icon">📊</span> Batch Jobs</div>
+        <div class="mock-nav-item"><span class="nav-icon">⚙️</span> Settings</div>
+      </div>
+      <div class="mock-main" style="position:relative;">
+        <div class="mock-dropzone">
+          <div class="dz-icon">📄</div>
+          <div class="dz-text">Drop your .vbs file here</div>
+          <div class="dz-sub">SAP GUI Script Recording → Reusable Workflow</div>
+        </div>
+        <div class="mock-chat-area" style="opacity:0.3;">
+          <div class="mock-msg agent">
+            <div class="agent-label">SAP AGENT</div>
+            Welcome! I can help you automate SAP transactions...
+          </div>
+        </div>
+        <div class="mock-input-area" style="opacity:0.3;">
+          <span class="mock-btn attach">📎</span>
+          <div class="mock-input placeholder">Type a message...</div>
+          <span class="mock-btn send">Send</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="context sap">
+    <div class="label blue">Where the .vbs file comes from</div>
+    <p>In SAP GUI, the user goes to the toolbar ⚙️ → Script Recording and Playback → starts recording → performs their transaction manually → stops recording. SAP saves a <code>.vbs</code> file full of <code>session.findById("wnd[0]/usr/...").text = "value"</code> calls. This is the raw material.</p>
+  </div>
+</div>
+
+<!-- ═══ STEP 4: FILE ATTACHED ═══ -->
+<div class="step-section">
+  <div class="step-header">
+    <div class="step-num">4</div>
+    <div class="step-header-text">
+      <h2>File is attached — user adds a message</h2>
+      <div class="when">File shows in the input area, user types context</div>
+    </div>
+  </div>
+
+  <p>The file appears as a preview chip in the input area. The user types a message like "Convert this recording into a workflow for creating sales orders" to give the agent context. Then they hit Send.</p>
+
+  <div class="mockup">
+    <div class="mockup-bar">
+      <span class="dot r"></span><span class="dot y"></span><span class="dot g"></span>
+      <span class="url">sap-agent.yourcompany.com/chat</span>
+    </div>
+    <div class="mockup-body">
+      <div class="mock-sidebar">
+        <div class="brand">
+          <div class="brand-name">SAP Agent</div>
+          <div class="brand-sub">v1.0 · Bridge connected ●</div>
+        </div>
+        <div class="mock-nav-item active"><span class="nav-icon">💬</span> Chat</div>
+        <div class="mock-nav-item"><span class="nav-icon">📋</span> Workflows</div>
+        <div class="mock-nav-item"><span class="nav-icon">📊</span> Batch Jobs</div>
+        <div class="mock-nav-item"><span class="nav-icon">⚙️</span> Settings</div>
+      </div>
+      <div class="mock-main">
+        <div class="mock-chat-area">
+          <div class="mock-msg agent">
+            <div class="agent-label">SAP AGENT</div>
+            Welcome! I can help you automate SAP transactions...
+          </div>
+        </div>
+        <div class="mock-input-area" style="flex-direction:column; align-items:stretch; gap:0.5rem;">
+          <div class="mock-attachment">
+            <div class="file-icon">VBS</div>
+            <div class="file-info">
+              <div class="file-name">va01_create_sales_order.vbs</div>
+              <div class="file-meta">4.2 KB · VBScript file</div>
+            </div>
+            <div class="file-remove">✕</div>
+          </div>
+          <div style="display:flex; gap:0.6rem; align-items:center;">
+            <span class="mock-btn attach">📎</span>
+            <div class="mock-input" style="color:#e0dfd8;">Convert this recording into a workflow for creating sales orders</div>
+            <span class="mock-btn send">Send</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="context accent">
+    <div class="label green">Attachment handling is free</div>
+    <p><code>pi-web-ui</code>'s attachment system handles the file preview, size display, remove button, and sends the file content alongside the user's text message to the agent. We just need the <code>sap_upload_vbs</code> tool to know what to do when it receives a <code>.vbs</code> attachment.</p>
+  </div>
+</div>
+
+<!-- ═══ STEP 5: PARSING ═══ -->
+<div class="step-section">
+  <div class="step-header">
+    <div class="step-num">5</div>
+    <div class="step-header-text">
+      <h2>Agent parses the VBS — deterministic step</h2>
+      <div class="when">No LLM needed here — pure code parsing</div>
+    </div>
+  </div>
+
+  <p>The agent calls the <code>sap_upload_vbs</code> tool. The VBS parser runs immediately — no LLM call. It regex-extracts every <code>session.findById(...)</code> line, identifies the T-code, groups actions into logical steps, and detects which values are hard-coded literals (candidates for parameterization). The user sees a streaming status update.</p>
+
+  <div class="mockup">
+    <div class="mockup-bar">
+      <span class="dot r"></span><span class="dot y"></span><span class="dot g"></span>
+      <span class="url">sap-agent.yourcompany.com/chat</span>
+    </div>
+    <div class="mockup-body">
+      <div class="mock-sidebar">
+        <div class="brand">
+          <div class="brand-name">SAP Agent</div>
+          <div class="brand-sub">v1.0 · Bridge connected ●</div>
+        </div>
+        <div class="mock-nav-item active"><span class="nav-icon">💬</span> Chat</div>
+        <div class="mock-nav-item"><span class="nav-icon">📋</span> Workflows</div>
+        <div class="mock-nav-item"><span class="nav-icon">📊</span> Batch Jobs</div>
+        <div class="mock-nav-item"><span class="nav-icon">⚙️</span> Settings</div>
+      </div>
+      <div class="mock-main">
+        <div class="mock-chat-area">
+          <div class="mock-msg user">
+            📎 va01_create_sales_order.vbs<br>
+            Convert this recording into a workflow for creating sales orders
+          </div>
+          <div class="mock-msg agent">
+            <div class="agent-label">SAP AGENT</div>
+            <span class="tool-tag running">⚡ sap_upload_vbs</span> Parsing your VBS recording...<br><br>
+
+            <div class="mock-status-card">
+              <div class="status-row"><span class="check">✓</span> <span class="label">Detected transaction: <strong>VA01</strong> (Create Sales Order)</span></div>
+              <div class="status-row"><span class="check">✓</span> <span class="label">Found <strong>14</strong> scripting actions</span></div>
+              <div class="status-row"><span class="check">✓</span> <span class="label">Grouped into <strong>5</strong> logical steps</span></div>
+              <div class="status-row"><span class="check">✓</span> <span class="label">Identified <strong>6</strong> hard-coded values (parameter candidates)</span></div>
+              <div class="status-row"><span class="check">✓</span> <span class="label">Detected <strong>1</strong> save action (will add confirmation gate)</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="mock-input-area">
+          <span class="mock-btn attach">📎</span>
+          <div class="mock-input placeholder">Type a message...</div>
+          <span class="mock-btn send">Send</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ STEP 6: LLM PARAMETERIZES ═══ -->
+<div class="step-section">
+  <div class="step-header">
+    <div class="step-num alt">6</div>
+    <div class="step-header-text">
+      <h2>LLM suggests parameters — user reviews</h2>
+      <div class="when">LLM is used here — but only for naming parameters, not driving SAP</div>
+    </div>
+  </div>
+
+  <p>Now the LLM reviews the extracted steps and suggests which hard-coded values should become parameters (e.g., "OR" in order type field → <code>${orderType}</code>, "1000" in sold-to → <code>${soldToParty}</code>). It presents a structured summary and asks the user to confirm or adjust.</p>
+
+  <div class="mockup">
+    <div class="mockup-bar">
+      <span class="dot r"></span><span class="dot y"></span><span class="dot g"></span>
+      <span class="url">sap-agent.yourcompany.com/chat</span>
+    </div>
+    <div class="mockup-body">
+      <div class="mock-sidebar">
+        <div class="brand">
+          <div class="brand-name">SAP Agent</div>
+          <div class="brand-sub">v1.0 · Bridge connected ●</div>
+        </div>
+        <div class="mock-nav-item active"><span class="nav-icon">💬</span> Chat</div>
+        <div class="mock-nav-item"><span class="nav-icon">📋</span> Workflows</div>
+        <div class="mock-nav-item"><span class="nav-icon">📊</span> Batch Jobs</div>
+        <div class="mock-nav-item"><span class="nav-icon">⚙️</span> Settings</div>
+      </div>
+      <div class="mock-main">
+        <div class="mock-chat-area">
+          <div class="mock-msg user" style="font-size:0.7rem; opacity:0.6;">
+            📎 va01_create_sales_order.vbs — Convert this recording...
+          </div>
+          <div class="mock-msg agent" style="opacity:0.5; font-size:0.7rem;">
+            <div class="agent-label">SAP AGENT</div>
+            <span class="tool-tag done">✓ sap_upload_vbs</span> Parsed 14 actions into 5 steps...
+          </div>
+          <div class="mock-msg agent">
+            <div class="agent-label">SAP AGENT</div>
+            I've analyzed your recording. Here's the workflow I'll create:
+
+            <div class="mock-wf-preview">
+              <div class="wf-title">create_sales_order</div>
+              Transaction: <span class="wf-id">VA01</span> · 5 steps · 1 save gate<br><br>
+              <strong>Parameters detected:</strong><br>
+              &nbsp;&nbsp;<span class="wf-param">${orderType}</span> ← was "OR" (Standard Order)<br>
+              &nbsp;&nbsp;<span class="wf-param">${salesOrg}</span> ← was "1000"<br>
+              &nbsp;&nbsp;<span class="wf-param">${distChannel}</span> ← was "10"<br>
+              &nbsp;&nbsp;<span class="wf-param">${division}</span> ← was "00"<br>
+              &nbsp;&nbsp;<span class="wf-param">${soldToParty}</span> ← was "1001"<br>
+              &nbsp;&nbsp;<span class="wf-param">${material}</span> ← was "MAT-100"<br>
+              &nbsp;&nbsp;<span class="wf-param">${quantity}</span> ← was "10"<br><br>
+              <strong>Steps:</strong><br>
+              1. Open VA01 → assert title<br>
+              2. Set order type → Enter<br>
+              3. Fill header (sales org, dist ch, div, sold-to) → Enter<br>
+              4. Fill line item (material, quantity) → Enter<br>
+              5. 🔒 <span style="color:#fbbf24;">GATE: Confirm before save</span> → Save → extract order number
+            </div>
+
+            Does this look correct? Should any values stay hard-coded instead of becoming parameters?
+
+            <div class="mock-confirm-btns">
+              <span class="cbtn approve">✓ Looks good, save it</span>
+              <span class="cbtn reject">✎ I want to adjust</span>
+            </div>
+          </div>
+        </div>
+        <div class="mock-input-area">
+          <span class="mock-btn attach">📎</span>
+          <div class="mock-input placeholder">Type a message or click a button above...</div>
+          <span class="mock-btn send">Send</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="context warn">
+    <div class="label orange">User stays in control</div>
+    <p>The user can adjust anything before saving. They might say "Keep order type OR hard-coded, I only want to change the customer and material." The LLM updates the workflow definition accordingly. Nothing is saved until the user explicitly confirms.</p>
+  </div>
+</div>
+
+<!-- ═══ STEP 7: SAVED ═══ -->
+<div class="step-section">
+  <div class="step-header">
+    <div class="step-num">7</div>
+    <div class="step-header-text">
+      <h2>User confirms — workflow is saved</h2>
+      <div class="when">Workflow JSON stored, immediately available</div>
+    </div>
+  </div>
+
+  <p>The user clicks "Looks good, save it." The agent saves the workflow JSON to the backend's workflow storage (Azure Blob or local filesystem). The workflow immediately appears in the Workflows sidebar and is available for execution by any authorized user.</p>
+
+  <div class="mockup">
+    <div class="mockup-bar">
+      <span class="dot r"></span><span class="dot y"></span><span class="dot g"></span>
+      <span class="url">sap-agent.yourcompany.com/chat</span>
+    </div>
+    <div class="mockup-body">
+      <div class="mock-sidebar">
+        <div class="brand">
+          <div class="brand-name">SAP Agent</div>
+          <div class="brand-sub">v1.0 · Bridge connected ●</div>
+        </div>
+        <div class="mock-nav-item active"><span class="nav-icon">💬</span> Chat</div>
+        <div class="mock-nav-item"><span class="nav-icon">📋</span> Workflows <span style="background:rgba(74,222,128,0.15);color:#4ade80;font-size:0.55rem;padding:0.05rem 0.3rem;border-radius:3px;margin-left:auto;">NEW</span></div>
+        <div class="mock-nav-item"><span class="nav-icon">📊</span> Batch Jobs</div>
+        <div class="mock-nav-item"><span class="nav-icon">⚙️</span> Settings</div>
+      </div>
+      <div class="mock-main">
+        <div class="mock-chat-area">
+          <div class="mock-msg user" style="font-size:0.7rem; opacity:0.5;">
+            📎 va01_create_sales_order.vbs — Convert this recording...
+          </div>
+          <div class="mock-msg agent" style="opacity:0.4; font-size:0.68rem;">
+            <div class="agent-label">SAP AGENT</div>
+            I've analyzed your recording...
+          </div>
+          <div class="mock-msg user" style="font-size:0.72rem;">
+            ✓ Looks good, save it
+          </div>
+          <div class="mock-msg agent">
+            <div class="agent-label">SAP AGENT</div>
+            <span class="tool-tag done">✓ Workflow saved</span><br><br>
+
+            <strong>create_sales_order</strong> is now available! 🎉<br><br>
+
+            You can run it anytime by saying something like:<br>
+            <em>"Create a sales order for customer 2000, material BOLT-M8, quantity 50"</em><br><br>
+
+            The workflow accepts these parameters:<br>
+            &nbsp;&nbsp;• <strong>soldToParty</strong> (required) — customer number<br>
+            &nbsp;&nbsp;• <strong>material</strong> (required) — material number<br>
+            &nbsp;&nbsp;• <strong>quantity</strong> (required) — order quantity<br>
+            &nbsp;&nbsp;• orderType — default: OR<br>
+            &nbsp;&nbsp;• salesOrg — default: 1000<br>
+            &nbsp;&nbsp;• distChannel — default: 10<br>
+            &nbsp;&nbsp;• division — default: 00<br><br>
+
+            It also shows up in your <strong>Workflows</strong> sidebar. Want to test it now?
+          </div>
+        </div>
+        <div class="mock-input-area">
+          <span class="mock-btn attach">📎</span>
+          <div class="mock-input placeholder">Try: "Create a sales order for customer 2000..."</div>
+          <span class="mock-btn send">Send</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ STEP 8: FIRST RUN ═══ -->
+<div class="step-section">
+  <div class="step-header">
+    <div class="step-num">8</div>
+    <div class="step-header-text">
+      <h2>User runs the workflow for the first time</h2>
+      <div class="when">Deterministic execution — same steps every time</div>
+    </div>
+  </div>
+
+  <p>The user types a natural language request. The LLM matches it to the <code>create_sales_order</code> workflow, extracts the parameters, and hands off to the deterministic executor. The user sees real-time step progress and a confirmation gate before the save.</p>
+
+  <div class="mockup">
+    <div class="mockup-bar">
+      <span class="dot r"></span><span class="dot y"></span><span class="dot g"></span>
+      <span class="url">sap-agent.yourcompany.com/chat</span>
+    </div>
+    <div class="mockup-body">
+      <div class="mock-sidebar">
+        <div class="brand">
+          <div class="brand-name">SAP Agent</div>
+          <div class="brand-sub">v1.0 · Bridge connected ●</div>
+        </div>
+        <div class="mock-nav-item active"><span class="nav-icon">💬</span> Chat</div>
+        <div class="mock-nav-item"><span class="nav-icon">📋</span> Workflows</div>
+        <div class="mock-nav-item"><span class="nav-icon">📊</span> Batch Jobs</div>
+        <div class="mock-nav-item"><span class="nav-icon">⚙️</span> Settings</div>
+      </div>
+      <div class="mock-main">
+        <div class="mock-chat-area">
+          <div class="mock-msg user">
+            Create a sales order for customer 2000, material BOLT-M8, quantity 50
+          </div>
+          <div class="mock-msg agent">
+            <div class="agent-label">SAP AGENT</div>
+            <span class="tool-tag running">⚡ sap_execute_workflow</span> Running <strong>create_sales_order</strong>...
+
+            <div class="mock-status-card">
+              <div class="status-row"><span class="check">✓</span> <span class="label">Step 1 — Opened VA01</span></div>
+              <div class="status-row"><span class="check">✓</span> <span class="label">Step 2 — Order type: OR</span></div>
+              <div class="status-row"><span class="check">✓</span> <span class="label">Step 3 — Header filled (1000 / 10 / 00 / customer 2000)</span></div>
+              <div class="status-row"><span class="check">✓</span> <span class="label">Step 4 — Line item: BOLT-M8 × 50</span></div>
+              <div class="status-row"><span class="pending">◻</span> <span class="label" style="color:var(--mock-dim);">Step 5 — 🔒 Awaiting your confirmation to save</span></div>
+            </div>
+
+            <br>Ready to save this sales order:<br>
+            &nbsp;&nbsp;Customer: <strong>2000</strong><br>
+            &nbsp;&nbsp;Material: <strong>BOLT-M8</strong> × <strong>50 EA</strong><br>
+            &nbsp;&nbsp;Order type: <strong>OR</strong> / Sales org: <strong>1000</strong><br>
+
+            <div class="mock-confirm-btns">
+              <span class="cbtn approve">✓ Save order</span>
+              <span class="cbtn reject">✕ Cancel</span>
+            </div>
+          </div>
+        </div>
+        <div class="mock-input-area">
+          <span class="mock-btn attach">📎</span>
+          <div class="mock-input placeholder">Type a message...</div>
+          <span class="mock-btn send">Send</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="context accent">
+    <div class="label green">Deterministic execution with a human gate</div>
+    <p>Steps 1–4 executed without any LLM involvement — pure code driving SAP GUI via the bridge. The executor checked an assertion after every step (title correct, no error in status bar, field exists). Step 5 is a gate — the executor paused and returned control to the user. Nothing is saved until they click "Save order."</p>
+  </div>
+</div>
+
+<!-- ═══ STEP 9: DONE ═══ -->
+<div class="step-section">
+  <div class="step-header">
+    <div class="step-num">9</div>
+    <div class="step-header-text">
+      <h2>Order created — document number returned</h2>
+      <div class="when">Success confirmation with extracted data</div>
+    </div>
+  </div>
+
+  <p>The user clicked "Save order." The executor pressed Save in SAP GUI, read the status bar, and extracted the document number. The entire interaction — from uploading a VBS file to running the workflow — took about 3 minutes. The workflow is now permanently available for repeat use.</p>
+
+  <div class="mockup">
+    <div class="mockup-bar">
+      <span class="dot r"></span><span class="dot y"></span><span class="dot g"></span>
+      <span class="url">sap-agent.yourcompany.com/chat</span>
+    </div>
+    <div class="mockup-body">
+      <div class="mock-sidebar">
+        <div class="brand">
+          <div class="brand-name">SAP Agent</div>
+          <div class="brand-sub">v1.0 · Bridge connected ●</div>
+        </div>
+        <div class="mock-nav-item active"><span class="nav-icon">💬</span> Chat</div>
+        <div class="mock-nav-item"><span class="nav-icon">📋</span> Workflows</div>
+        <div class="mock-nav-item"><span class="nav-icon">📊</span> Batch Jobs</div>
+        <div class="mock-nav-item"><span class="nav-icon">⚙️</span> Settings</div>
+      </div>
+      <div class="mock-main">
+        <div class="mock-chat-area">
+          <div class="mock-msg user" style="font-size:0.7rem; opacity:0.5;">
+            Create a sales order for customer 2000, material BOLT-M8, quantity 50
+          </div>
+          <div class="mock-msg agent" style="opacity:0.4; font-size:0.68rem;">
+            <div class="agent-label">SAP AGENT</div>
+            Running create_sales_order... 5 steps...
+          </div>
+          <div class="mock-msg user" style="font-size:0.72rem;">
+            ✓ Save order
+          </div>
+          <div class="mock-msg agent">
+            <div class="agent-label">SAP AGENT</div>
+            <span class="tool-tag done">✓ create_sales_order completed</span><br><br>
+
+            <div style="background:rgba(74,222,128,0.08); border:1px solid rgba(74,222,128,0.15); border-radius:8px; padding:0.8rem 1rem; text-align:center;">
+              <div style="font-size:0.65rem; color:var(--mock-accent); text-transform:uppercase; letter-spacing:0.06em; margin-bottom:0.3rem;">Sales Order Created</div>
+              <div style="font-size:1.4rem; font-weight:700; color:#4ade80; font-family:'IBM Plex Mono',monospace;">0000012847</div>
+              <div style="font-size:0.65rem; color:var(--mock-dim); margin-top:0.3rem;">Customer 2000 · BOLT-M8 × 50 EA · VA01</div>
+            </div>
+            <br>
+            All 5 steps completed with 0 errors. Execution time: 8.3 seconds.<br><br>
+            Want to create another order, or do something else?
+          </div>
+        </div>
+        <div class="mock-input-area">
+          <span class="mock-btn attach">📎</span>
+          <div class="mock-input placeholder">Type a message...</div>
+          <span class="mock-btn send">Send</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ SUMMARY ═══ -->
+<div class="step-section">
+  <div class="step-header">
+    <div class="step-num warn">∑</div>
+    <div class="step-header-text">
+      <h2>Complete flow summary</h2>
+      <div class="when">9 steps, ~3 minutes for the first-time VBS upload, ~15 seconds for repeat runs</div>
+    </div>
+  </div>
+
+  <div class="context accent">
+    <div class="label green">The full journey</div>
+    <p>
+      <strong>Step 1</strong> — Open app, sign in with Microsoft SSO (one click).<br>
+      <strong>Step 2</strong> — See the chat interface with welcome message.<br>
+      <strong>Step 3</strong> — Drag .vbs file onto the chat (or click 📎).<br>
+      <strong>Step 4</strong> — Type "Convert this recording into a workflow" + Send.<br>
+      <strong>Step 5</strong> — Agent parses VBS deterministically — shows step count, field count, T-code.<br>
+      <strong>Step 6</strong> — LLM suggests parameter names — user reviews the workflow summary.<br>
+      <strong>Step 7</strong> — User confirms — workflow saved, available immediately.<br>
+      <strong>Step 8</strong> — User runs the workflow with real data — sees live step progress — confirms save.<br>
+      <strong>Step 9</strong> — Done. Document number returned. Workflow reusable forever.
+    </p>
+  </div>
+
+  <div class="context warn">
+    <div class="label orange">For repeat use (no VBS upload)</div>
+    <p>
+      Steps 1–2 happen once per session. Steps 3–7 happen once per new workflow. For everyday use, the user just does <strong>Step 8–9</strong>: type what they want → watch execution → confirm → done. That's a 15-second interaction for a transaction that used to take 2–5 minutes of manual clicking through SAP screens.
+    </p>
+  </div>
+</div>
+
+</div>
+
+<footer>
+  <div class="container">
+    SAP GUI Agent — User Flow Walkthrough — March 2026
+  </div>
+</footer>
+
+</body>
+</html>

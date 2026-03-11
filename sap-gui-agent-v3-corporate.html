@@ -1,0 +1,797 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SAP GUI Agent v3 — Corporate Web App + Teams</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0b0f19;
+    --surface: #111827;
+    --surface2: #1a2332;
+    --surface3: #0d1520;
+    --border: #1e2d3d;
+    --accent: #00d4aa;
+    --accent-dim: rgba(0,212,170,0.12);
+    --accent2: #7c5cff;
+    --accent3: #ff6b6b;
+    --text: #e2e8f0;
+    --text-dim: #8892a4;
+    --text-dimmer: #5a6477;
+    --sap-blue: #0070f2;
+    --sap-gold: #e8a838;
+    --warn: #f59e0b;
+    --teams: #6264A7;
+    --teams-dim: rgba(98,100,167,0.12);
+    --copilot: #7B83EB;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background:var(--bg); color:var(--text); font-family:'DM Sans',sans-serif; line-height:1.7; overflow-x:hidden; }
+
+  .noise { position:fixed; inset:0; background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E"); pointer-events:none; z-index:999; }
+  .glow-orb { position:fixed; border-radius:50%; filter:blur(140px); pointer-events:none; z-index:0; }
+  .glow-orb.one { width:500px; height:500px; background:rgba(98,100,167,0.05); top:-100px; right:-100px; }
+  .glow-orb.two { width:400px; height:400px; background:rgba(0,212,170,0.04); bottom:300px; left:-100px; }
+
+  .container { max-width:980px; margin:0 auto; padding:0 2rem; position:relative; z-index:1; }
+  header { padding:4rem 0 3rem; border-bottom:1px solid var(--border); }
+  .tag-row { display:flex; gap:0.5rem; margin-bottom:1.5rem; flex-wrap:wrap; }
+  .tag { font-family:'JetBrains Mono',monospace; font-size:0.67rem; letter-spacing:0.06em; padding:0.3rem 0.7rem; border-radius:4px; text-transform:uppercase; }
+  .tag.teams { background:var(--teams-dim); color:var(--teams); border:1px solid rgba(98,100,167,0.25); }
+  .tag.web { background:rgba(0,212,170,0.1); color:var(--accent); border:1px solid rgba(0,212,170,0.2); }
+  .tag.sap { background:rgba(0,112,242,0.1); color:var(--sap-blue); border:1px solid rgba(0,112,242,0.2); }
+  .tag.vbs { background:rgba(232,168,56,0.1); color:var(--sap-gold); border:1px solid rgba(232,168,56,0.2); }
+
+  h1 { font-size:2.5rem; font-weight:700; line-height:1.15; margin-bottom:1rem;
+    background:linear-gradient(135deg,var(--text) 0%,var(--teams) 40%,var(--accent) 100%);
+    -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
+  .subtitle { font-size:1.05rem; color:var(--text-dim); max-width:740px; }
+
+  section { padding:2.8rem 0; border-bottom:1px solid var(--border); }
+  section:last-of-type { border-bottom:none; }
+  h2 { font-size:1.3rem; font-weight:700; margin-bottom:0.4rem; display:flex; align-items:center; gap:0.6rem; }
+  h2 .num { font-family:'JetBrains Mono',monospace; font-size:0.72rem; color:var(--accent); background:var(--accent-dim); padding:0.25rem 0.5rem; border-radius:3px; letter-spacing:0.05em; }
+  .section-desc { color:var(--text-dim); margin-bottom:1.5rem; font-size:0.95rem; }
+  p { margin-bottom:1rem; }
+  strong { color:var(--text); }
+
+  .callout { background:var(--surface); border-left:3px solid var(--warn); border-radius:0 8px 8px 0; padding:1.1rem 1.3rem; margin:1.5rem 0; }
+  .callout.green { border-left-color:var(--accent); }
+  .callout.purple { border-left-color:var(--accent2); }
+  .callout.teams { border-left-color:var(--teams); }
+  .callout .ct { font-weight:700; font-size:0.82rem; text-transform:uppercase; letter-spacing:0.04em; margin-bottom:0.35rem; }
+  .callout .ct.warn { color:var(--warn); }
+  .callout .ct.green { color:var(--accent); }
+  .callout .ct.purple { color:var(--accent2); }
+  .callout .ct.teams { color:var(--teams); }
+  .callout p { font-size:0.88rem; color:var(--text-dim); margin-bottom:0; }
+
+  .card-grid { display:grid; grid-template-columns:1fr 1fr; gap:1rem; margin:1.5rem 0; }
+  .card-grid.three { grid-template-columns:1fr 1fr 1fr; }
+  @media (max-width:800px) { .card-grid, .card-grid.three { grid-template-columns:1fr; } h1 { font-size:2rem; } }
+  .card { background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:1.25rem; transition:border-color 0.2s,transform 0.15s; }
+  .card:hover { border-color:rgba(0,212,170,0.22); transform:translateY(-1px); }
+  .card h3 { font-size:0.92rem; font-weight:600; margin-bottom:0.35rem; display:flex; align-items:center; gap:0.45rem; }
+  .card h3 .icon { width:25px; height:25px; border-radius:5px; display:flex; align-items:center; justify-content:center; font-size:0.78rem; flex-shrink:0; }
+  .card p { font-size:0.83rem; color:var(--text-dim); margin-bottom:0; }
+  .icon-green { background:rgba(0,212,170,0.12); }
+  .icon-purple { background:rgba(124,92,255,0.12); }
+  .icon-blue { background:rgba(0,112,242,0.12); }
+  .icon-gold { background:rgba(232,168,56,0.12); }
+  .icon-teams { background:var(--teams-dim); }
+  .icon-red { background:rgba(255,107,107,0.12); }
+
+  .wide-card { background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:1.4rem; margin:1.5rem 0; }
+  .wide-card h3 { font-size:0.98rem; font-weight:600; margin-bottom:0.5rem; }
+  .wide-card p { font-size:0.86rem; color:var(--text-dim); }
+
+  .code-block { background:var(--surface); border:1px solid var(--border); border-radius:10px; margin:1.5rem 0; overflow:hidden; }
+  .code-header { display:flex; align-items:center; gap:0.5rem; padding:0.6rem 1.1rem; background:var(--surface2); border-bottom:1px solid var(--border); font-family:'JetBrains Mono',monospace; font-size:0.68rem; color:var(--text-dim); letter-spacing:0.03em; }
+  .code-header .dot { width:7px; height:7px; border-radius:50%; }
+  .code-header .dot.r { background:#ff5f57; } .code-header .dot.y { background:#febc2e; } .code-header .dot.g { background:#28c840; }
+  .code-block pre { padding:1.1rem; font-family:'JetBrains Mono',monospace; font-size:0.74rem; line-height:1.6; overflow-x:auto; color:var(--text-dim); }
+  .code-block pre .kw { color:var(--accent2); } .code-block pre .fn { color:var(--accent); } .code-block pre .str { color:var(--sap-gold); }
+  .code-block pre .cm { color:#3d4a5c; font-style:italic; } .code-block pre .ty { color:var(--sap-blue); }
+  .code-block pre .prop { color:#93c5fd; } .code-block pre .bool { color:var(--accent); } .code-block pre .num { color:var(--accent3); }
+
+  .arch-diagram { background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:1.6rem; margin:1.5rem 0; overflow-x:auto; }
+  .arch-diagram pre { font-family:'JetBrains Mono',monospace; font-size:0.73rem; line-height:1.5; color:var(--text-dim); white-space:pre; }
+  .arch-diagram pre .hl { color:var(--accent); } .arch-diagram pre .hl2 { color:var(--accent2); }
+  .arch-diagram pre .sap { color:var(--sap-blue); } .arch-diagram pre .gold { color:var(--sap-gold); }
+  .arch-diagram pre .red { color:var(--accent3); } .arch-diagram pre .warn { color:var(--warn); }
+  .arch-diagram pre .teams { color:var(--teams); }
+
+  .data-table { width:100%; border-collapse:collapse; margin:1.5rem 0; font-size:0.82rem; }
+  .data-table th { text-align:left; padding:0.6rem 0.9rem; background:var(--surface2); border:1px solid var(--border); font-weight:600; font-size:0.7rem; text-transform:uppercase; letter-spacing:0.05em; color:var(--text-dim); }
+  .data-table td { padding:0.6rem 0.9rem; border:1px solid var(--border); vertical-align:top; color:var(--text-dim); }
+  .data-table tr:nth-child(even) td { background:rgba(17,24,39,0.4); }
+  .data-table code { font-family:'JetBrains Mono',monospace; font-size:0.73rem; background:rgba(0,212,170,0.08); padding:0.1rem 0.3rem; border-radius:3px; color:var(--accent); }
+
+  .badge { display:inline-block; font-family:'JetBrains Mono',monospace; font-size:0.62rem; padding:0.1rem 0.38rem; border-radius:3px; text-transform:uppercase; letter-spacing:0.04em; }
+  .badge.reuse { background:rgba(0,212,170,0.12); color:var(--accent); }
+  .badge.new { background:rgba(245,158,11,0.12); color:var(--warn); }
+  .badge.teams-b { background:var(--teams-dim); color:var(--teams); }
+
+  .flow-steps { display:flex; flex-direction:column; margin:1.5rem 0; }
+  .flow-step { display:flex; gap:1.1rem; align-items:flex-start; }
+  .flow-step .line-col { display:flex; flex-direction:column; align-items:center; flex-shrink:0; width:30px; }
+  .flow-step .dot-marker { width:11px; height:11px; border-radius:50%; background:var(--accent); border:2px solid var(--bg); box-shadow:0 0 0 2px rgba(0,212,170,0.22); z-index:1; flex-shrink:0; }
+  .flow-step .dot-marker.teams { background:var(--teams); box-shadow:0 0 0 2px rgba(98,100,167,0.22); }
+  .flow-step .dot-marker.warn { background:var(--warn); box-shadow:0 0 0 2px rgba(245,158,11,0.22); }
+  .flow-step .dot-marker.purple { background:var(--accent2); box-shadow:0 0 0 2px rgba(124,92,255,0.22); }
+  .flow-step .line-segment { width:2px; flex-grow:1; background:linear-gradient(to bottom,rgba(0,212,170,0.22),rgba(0,212,170,0.04)); min-height:22px; }
+  .flow-step:last-child .line-segment { display:none; }
+  .flow-step .flow-content { padding-bottom:1.3rem; }
+  .flow-step .flow-content h4 { font-size:0.9rem; font-weight:600; margin-bottom:0.2rem; }
+  .flow-step .flow-content p { font-size:0.82rem; color:var(--text-dim); margin-bottom:0; }
+
+  footer { padding:2.5rem 0; text-align:center; color:var(--text-dimmer); font-size:0.76rem; }
+</style>
+</head>
+<body>
+<div class="noise"></div>
+<div class="glow-orb one"></div>
+<div class="glow-orb two"></div>
+
+<div class="container">
+
+<!-- ═══ HEADER ═══ -->
+<header>
+  <div class="tag-row">
+    <span class="tag web">web app</span>
+    <span class="tag teams">microsoft teams</span>
+    <span class="tag vbs">VBS upload</span>
+    <span class="tag sap">SAP GUI</span>
+  </div>
+  <h1>SAP GUI Agent v3<br>Corporate Web App + Teams</h1>
+  <p class="subtitle">Web-first via <code>pi-web-ui</code>. No CLI or TUI — corporate users get a chat interface they already understand. Integrates with Microsoft Teams as a bot. Supports VBS script upload from SAP's recorder. Taps into existing corporate AI (Azure OpenAI / Copilot). Reuses everything we can from pi-mono.</p>
+</header>
+
+<!-- ═══ 01 WHAT WE REUSE ═══ -->
+<section>
+  <h2><span class="num">01</span> What We Reuse vs. What We Build</h2>
+  <p class="section-desc">Maximum leverage from pi-mono. We only build SAP-specific pieces.</p>
+
+  <table class="data-table">
+    <thead>
+      <tr><th>Component</th><th>Source</th><th>Status</th><th>What It Gives Us</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><code>@mariozechner/pi-ai</code></td>
+        <td>pi-mono</td>
+        <td><span class="badge reuse">Reuse</span></td>
+        <td>Unified LLM API — connect to Azure OpenAI, Anthropic, Google, or the company's existing provider. One interface, swap models without code changes.</td>
+      </tr>
+      <tr>
+        <td><code>@mariozechner/pi-agent-core</code></td>
+        <td>pi-mono</td>
+        <td><span class="badge reuse">Reuse</span></td>
+        <td>Agent loop with tool calling, state management, event streaming. This is the engine that orchestrates LLM ↔ workflow executor communication.</td>
+      </tr>
+      <tr>
+        <td><code>@mariozechner/pi-web-ui</code></td>
+        <td>pi-mono</td>
+        <td><span class="badge reuse">Reuse</span></td>
+        <td>Drop-in chat UI components (Lit web components + Tailwind). Chat panel, message streaming, file attachments (for VBS upload), sessions storage. <strong>This is our frontend.</strong></td>
+      </tr>
+      <tr>
+        <td><code>@mariozechner/pi-proxy</code></td>
+        <td>pi-mono</td>
+        <td><span class="badge reuse">Reuse</span></td>
+        <td>CORS proxy for browser→LLM API calls. Handles auth headers so the browser doesn't need raw API keys.</td>
+      </tr>
+      <tr>
+        <td>SAP Workflow Executor</td>
+        <td>Custom</td>
+        <td><span class="badge new">Build</span></td>
+        <td>Deterministic JSON workflow runner. Executes steps against the SAP GUI bridge. Assertions, gates, logging.</td>
+      </tr>
+      <tr>
+        <td>SAP GUI Bridge</td>
+        <td>Custom</td>
+        <td><span class="badge new">Build</span></td>
+        <td>Python service on Windows that wraps COM API (sapfewse.ocx). WebSocket server.</td>
+      </tr>
+      <tr>
+        <td>VBS → Workflow Converter</td>
+        <td>Custom</td>
+        <td><span class="badge new">Build</span></td>
+        <td>Parses SAP recorder VBScript output and generates parameterized workflow JSON definitions.</td>
+      </tr>
+      <tr>
+        <td>Teams Bot Adapter</td>
+        <td>Custom + Teams SDK</td>
+        <td><span class="badge teams-b">Build</span></td>
+        <td>Thin adapter that receives Teams messages, routes them to the same agent-core backend, sends responses as Teams Adaptive Cards.</td>
+      </tr>
+      <tr>
+        <td>SAP Agent Tools</td>
+        <td>Custom</td>
+        <td><span class="badge new">Build</span></td>
+        <td>Tool definitions (TypeBox schemas) registered with agent-core: <code>sap_execute_workflow</code>, <code>sap_list_workflows</code>, <code>sap_upload_vbs</code>, <code>sap_recover</code>.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="callout green">
+    <div class="ct green">Build vs. Buy Ratio</div>
+    <p>We reuse 4 pi-mono packages that handle <strong>all LLM communication, the agent loop, the chat UI, and the proxy</strong>. We only build SAP-specific logic: the bridge, the workflow executor, the VBS converter, and the Teams adapter. The chat frontend is literally <code>pi-web-ui</code>'s <code>&lt;agent-interface&gt;</code> component with custom tools wired in.</p>
+  </div>
+</section>
+
+<!-- ═══ 02 ARCHITECTURE ═══ -->
+<section>
+  <h2><span class="num">02</span> Architecture</h2>
+  <p class="section-desc">Two frontends (web app + Teams bot), one shared backend, one SAP bridge.</p>
+
+  <div class="arch-diagram"><pre>
+  ┌──────────────────────────────────────────────────────────────────────┐
+  │  <span class="hl2">FRONTENDS</span> (corporate users interact here)                          │
+  │                                                                      │
+  │  ┌─────────────────────────┐    ┌──────────────────────────────┐    │
+  │  │ <span class="hl">Web App</span>                  │    │ <span class="teams">Microsoft Teams Bot</span>          │    │
+  │  │                         │    │                              │    │
+  │  │ pi-web-ui components:   │    │ Teams SDK (JS)               │    │
+  │  │ • &lt;agent-interface&gt;     │    │ • Receives messages          │    │
+  │  │ • Chat panel            │    │ • Sends Adaptive Cards       │    │
+  │  │ • File attachments      │    │ • File upload (VBS)          │    │
+  │  │   (VBS upload)          │    │ • Approval buttons           │    │
+  │  │ • Session storage       │    │                              │    │
+  │  │ • Workflow status cards  │    │ Runs as Azure Web App        │    │
+  │  └────────────┬────────────┘    └──────────────┬───────────────┘    │
+  │               │                                │                    │
+  │               └──────────┬─────────────────────┘                    │
+  │                          │  same API                                │
+  │                          ▼                                          │
+  │  ┌───────────────────────────────────────────────────────────┐      │
+  │  │ <span class="hl2">Backend API Server</span> (Node.js / Express or Hono)              │      │
+  │  │                                                           │      │
+  │  │  ┌─────────────┐  ┌──────────────┐  ┌────────────────┐  │      │
+  │  │  │ <span class="hl">pi-ai</span>       │  │ <span class="hl">pi-agent-core</span>│  │ <span class="gold">SAP Tools</span>      │  │      │
+  │  │  │ LLM calls   │  │ Agent loop   │  │ execute_wf     │  │      │
+  │  │  │ Azure OpenAI│  │ Tool calling │  │ list_wf        │  │      │
+  │  │  │ / Anthropic │  │ State mgmt   │  │ upload_vbs     │  │      │
+  │  │  │ / Corporate │  │ Events       │  │ recover        │  │      │
+  │  │  └─────────────┘  └──────────────┘  └───────┬────────┘  │      │
+  │  │                                             │            │      │
+  │  │  ┌──────────────────────────────────────────┤            │      │
+  │  │  │ <span class="warn">Workflow Executor</span>   <span class="warn">VBS Converter</span>        │            │      │
+  │  │  │ • Parse JSON defs   • Parse .vbs files   │            │      │
+  │  │  │ • Run steps         • Extract field IDs  │            │      │
+  │  │  │ • Check assertions  • Generate JSON      │            │      │
+  │  │  │ • Gate confirmations• Detect params      │            │      │
+  │  │  └──────────────────────────────────────────┘            │      │
+  │  └─────────────────────────────┬─────────────────────────────┘      │
+  └────────────────────────────────┼────────────────────────────────────┘
+                                   │ WebSocket
+                                   ▼
+  ┌────────────────────────────────────────────────────────────────────┐
+  │  <span class="sap">SAP GUI Bridge</span> (Python, runs on Windows where SAP GUI is installed) │
+  │                                                                    │
+  │  win32com.client → sapfewse.ocx (COM)                              │
+  │  • connect(connection, session)                                    │
+  │  • readScreen() → { title, fields[], buttons[], statusBar }        │
+  │  • setField(id, value)                                             │
+  │  • press(id) / sendVKey(code)                                      │
+  │  • getStatusBar() → { text, type }                                 │
+  │  • screenshot() → base64 PNG                                       │
+  │                                                                    │
+  │  ┌─────────────────────────────────────────────────────────┐       │
+  │  │  <span class="sap">SAP GUI for Windows</span>  (user's desktop or RDP/Citrix)      │       │
+  │  └─────────────────────────────────────────────────────────┘       │
+  └────────────────────────────────────────────────────────────────────┘</pre></div>
+</section>
+
+<!-- ═══ 03 WEB FRONTEND ═══ -->
+<section>
+  <h2><span class="num">03</span> Web App Frontend — Reusing pi-web-ui</h2>
+  <p class="section-desc">Corporate users get a familiar chat UI. The entire frontend is pi-web-ui's <code>&lt;agent-interface&gt;</code> component with SAP-specific tools wired in.</p>
+
+  <div class="code-block">
+    <div class="code-header">
+      <span class="dot r"></span><span class="dot y"></span><span class="dot g"></span>
+      <span>src/app.ts — main web app entry point</span>
+    </div>
+    <pre>
+<span class="kw">import</span> { Agent } <span class="kw">from</span> <span class="str">'@mariozechner/pi-agent-core'</span>;
+<span class="kw">import</span> { getModel } <span class="kw">from</span> <span class="str">'@mariozechner/pi-ai'</span>;
+<span class="kw">import</span> {
+  ChatPanel, AppStorage, IndexedDBStorageBackend,
+  ProviderKeysStore, SessionsStore, SettingsStore, setAppStorage,
+  defaultConvertToLlm, <span class="ty">AgentInterface</span>,
+} <span class="kw">from</span> <span class="str">'@mariozechner/pi-web-ui'</span>;
+<span class="kw">import</span> <span class="str">'@mariozechner/pi-web-ui/app.css'</span>;
+<span class="kw">import</span> { sapTools, sapSystemPrompt } <span class="kw">from</span> <span class="str">'./sap-tools'</span>;
+
+<span class="cm">// ── Storage (IndexedDB, sessions persist in browser) ──</span>
+<span class="kw">const</span> storage = <span class="fn">setupStorage</span>(<span class="str">'sap-gui-agent'</span>);
+<span class="fn">setAppStorage</span>(storage);
+
+<span class="cm">// ── Connect to corporate LLM ──</span>
+<span class="cm">// Option A: Company's Azure OpenAI deployment</span>
+<span class="cm">// Option B: Anthropic API</span>
+<span class="cm">// Option C: Self-hosted via vLLM (pi-pods)</span>
+<span class="kw">const</span> model = <span class="fn">getModel</span>(<span class="str">'azure-openai'</span>, <span class="str">'gpt-4o'</span>);  <span class="cm">// or 'anthropic', 'claude-sonnet-4'</span>
+
+<span class="cm">// ── Create agent with SAP tools ──</span>
+<span class="kw">const</span> agent = <span class="kw">new</span> <span class="ty">Agent</span>({
+  initialState: {
+    systemPrompt: sapSystemPrompt,  <span class="cm">// SAP workflow instructions</span>
+    model,
+    thinkingLevel: <span class="str">'off'</span>,
+    messages: [],
+    tools: sapTools,  <span class="cm">// sap_execute_workflow, sap_list_workflows, sap_upload_vbs, sap_recover</span>
+  },
+  convertToLlm: defaultConvertToLlm,
+});
+
+<span class="cm">// ── Mount the pi-web-ui chat interface ──</span>
+<span class="kw">const</span> chat = document.<span class="fn">createElement</span>(<span class="str">'agent-interface'</span>) <span class="kw">as</span> <span class="ty">AgentInterface</span>;
+chat.session = agent;
+chat.enableAttachments = <span class="bool">true</span>;   <span class="cm">// ← enables VBS file upload</span>
+chat.enableModelSelector = <span class="bool">false</span>; <span class="cm">// ← hide from corporate users</span>
+chat.enableThinkingSelector = <span class="bool">false</span>;
+
+document.<span class="fn">getElementById</span>(<span class="str">'app'</span>).<span class="fn">appendChild</span>(chat);
+</pre>
+  </div>
+
+  <div class="callout green">
+    <div class="ct green">What pi-web-ui gives us for free</div>
+    <p>Chat panel with message streaming, file attachments with preview and text extraction (for VBS uploads), IndexedDB session persistence, markdown rendering in responses, tool call visualization, and Tailwind-styled components. We don't write any chat UI code — we just configure it and register our SAP tools.</p>
+  </div>
+
+  <div class="card-grid">
+    <div class="card">
+      <h3><span class="icon icon-green">📎</span> VBS Upload via Attachments</h3>
+      <p><code>pi-web-ui</code> already supports file attachments. Users drag-and-drop their <code>.vbs</code> file from SAP's script recorder. The <code>sap_upload_vbs</code> tool parses it and generates a workflow JSON.</p>
+    </div>
+    <div class="card">
+      <h3><span class="icon icon-purple">💬</span> Familiar Chat UX</h3>
+      <p>Corporate users already know chat from Teams/Slack. No learning curve. They type "Create a PO for vendor 1000" and watch the agent work, with step-by-step status updates streamed into the chat.</p>
+    </div>
+    <div class="card">
+      <h3><span class="icon icon-blue">🎨</span> Custom Branding Layer</h3>
+      <p>Wrap <code>pi-web-ui</code> in a thin shell with company logo, sidebar for workflow library, VBS upload zone, and batch job status. All CSS — no component rewriting.</p>
+    </div>
+    <div class="card">
+      <h3><span class="icon icon-gold">🔐</span> Auth via Corporate SSO</h3>
+      <p>Add Azure AD / Entra ID login in front. The proxy (<code>pi-proxy</code>) handles API key management server-side. Users never see or manage LLM API keys.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ 04 TEAMS ═══ -->
+<section>
+  <h2><span class="num">04</span> Microsoft Teams Integration</h2>
+  <p class="section-desc">Same backend, different frontend. The Teams bot is a thin adapter.</p>
+
+  <div class="callout teams">
+    <div class="ct teams">Teams Strategy</div>
+    <p>Use the <strong>Teams SDK</strong> (the current recommended path, replacing the deprecated Bot Framework SDK) to build a Custom Engine Agent. The bot receives user messages, routes them to the same <code>pi-agent-core</code> Agent instance running server-side, and renders responses as <strong>Adaptive Cards</strong> — which support buttons for confirmation gates, file upload for VBS, and structured output for workflow status.</p>
+  </div>
+
+  <div class="arch-diagram"><pre>
+  <span class="teams">Teams Client</span>                    <span class="hl2">Your Backend</span>
+  ┌──────────────────┐           ┌──────────────────────────────────┐
+  │ User in Teams    │           │  Teams Bot Adapter               │
+  │                  │   HTTP    │  (Teams SDK + Express)           │
+  │ "Create PO for   │─────────▶│                                  │
+  │  vendor 1000"    │           │  1. Receive Activity             │
+  │                  │           │  2. Extract text + attachments   │
+  │                  │           │  3. Route to pi-agent-core Agent │
+  │                  │◀─────────│  4. Stream response              │
+  │ [Adaptive Card:  │           │  5. Format as Adaptive Card      │
+  │  PO 4500012345   │           │  6. Send via Bot connector       │
+  │  created ✓]      │           │                                  │
+  │                  │           │  <span class="cm">Same Agent, same tools,</span>         │
+  │ [Confirm Save?]  │           │  <span class="cm">same workflow executor</span>          │
+  │  [Yes] [No]      │           │                                  │
+  └──────────────────┘           └──────────────────────────────────┘</pre></div>
+
+  <div class="code-block">
+    <div class="code-header">
+      <span class="dot r"></span><span class="dot y"></span><span class="dot g"></span>
+      <span>src/teams-adapter.ts — Teams bot wired to the same agent</span>
+    </div>
+    <pre>
+<span class="kw">import</span> { Agent } <span class="kw">from</span> <span class="str">'@mariozechner/pi-agent-core'</span>;
+<span class="kw">import</span> { getModel } <span class="kw">from</span> <span class="str">'@mariozechner/pi-ai'</span>;
+<span class="kw">import</span> { sapTools, sapSystemPrompt } <span class="kw">from</span> <span class="str">'./sap-tools'</span>;
+<span class="kw">import</span> { Application } <span class="kw">from</span> <span class="str">'@microsoft/teams-sdk'</span>;
+
+<span class="kw">const</span> app = <span class="kw">new</span> <span class="ty">Application</span>();
+
+<span class="cm">// Per-user agent sessions (keyed by Teams user ID)</span>
+<span class="kw">const</span> sessions = <span class="kw">new</span> Map&lt;string, <span class="ty">Agent</span>&gt;();
+
+<span class="kw">function</span> <span class="fn">getOrCreateAgent</span>(userId: string): <span class="ty">Agent</span> {
+  <span class="kw">if</span> (!sessions.has(userId)) {
+    sessions.set(userId, <span class="kw">new</span> <span class="ty">Agent</span>({
+      initialState: {
+        systemPrompt: sapSystemPrompt,
+        model: <span class="fn">getModel</span>(<span class="str">'azure-openai'</span>, <span class="str">'gpt-4o'</span>),
+        messages: [],
+        tools: sapTools,
+      },
+    }));
+  }
+  <span class="kw">return</span> sessions.get(userId)!;
+}
+
+app.<span class="fn">message</span>(<span class="str">'/sap'</span>, <span class="kw">async</span> (ctx) => {
+  <span class="kw">const</span> agent = <span class="fn">getOrCreateAgent</span>(ctx.activity.from.id);
+  <span class="kw">const</span> userText = ctx.activity.text;
+
+  <span class="cm">// Handle VBS file attachment</span>
+  <span class="kw">if</span> (ctx.activity.attachments?.length) {
+    <span class="cm">// Download file, pass to sap_upload_vbs tool</span>
+  }
+
+  <span class="cm">// Run agent — same tools, same workflow executor</span>
+  agent.<span class="fn">subscribe</span>((event) => {
+    <span class="kw">if</span> (event.type === <span class="str">'message_end'</span>) {
+      <span class="cm">// Convert response to Adaptive Card</span>
+      ctx.<span class="fn">sendActivity</span>(<span class="fn">toAdaptiveCard</span>(event.message));
+    }
+    <span class="kw">if</span> (event.type === <span class="str">'tool_call'</span> && event.tool === <span class="str">'gate'</span>) {
+      <span class="cm">// Send confirmation card with [Approve] [Reject] buttons</span>
+      ctx.<span class="fn">sendActivity</span>(<span class="fn">toConfirmationCard</span>(event.data));
+    }
+  });
+
+  <span class="kw">await</span> agent.<span class="fn">prompt</span>(userText);
+});
+</pre>
+  </div>
+
+  <div class="card-grid">
+    <div class="card">
+      <h3><span class="icon icon-teams">💬</span> Chat in Teams</h3>
+      <p>Users message the bot directly or @mention it in a channel. No new app to install — it lives where they already work.</p>
+    </div>
+    <div class="card">
+      <h3><span class="icon icon-teams">✅</span> Approval via Adaptive Cards</h3>
+      <p>Confirmation gates render as cards with [Approve] and [Reject] buttons. Managers can approve POs from their phone.</p>
+    </div>
+    <div class="card">
+      <h3><span class="icon icon-teams">📎</span> VBS Upload in Teams</h3>
+      <p>Users attach a <code>.vbs</code> file to their Teams message. The bot processes it, generates a workflow, and confirms back.</p>
+    </div>
+    <div class="card">
+      <h3><span class="icon icon-teams">🔔</span> Batch Notifications</h3>
+      <p>When a batch job finishes (50 POs created), the bot sends a summary card to the user or a channel. No need to check a dashboard.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ 05 CORPORATE AI ═══ -->
+<section>
+  <h2><span class="num">05</span> Tapping Into Existing Corporate AI</h2>
+  <p class="section-desc">Most enterprises already have Azure OpenAI or Copilot licenses. We plug into what they already pay for.</p>
+
+  <div class="wide-card">
+    <h3>pi-ai makes this trivial</h3>
+    <p>The <code>pi-ai</code> package already supports Azure OpenAI as a provider. If the company has a GPT-4o deployment in Azure, we just configure the endpoint and deployment name. If they prefer Anthropic or Google, we switch with one line. If they want to self-host, <code>pi-pods</code> can deploy vLLM on their infrastructure and <code>pi-ai</code> connects via the OpenAI-compatible API. The SAP agent doesn't care which LLM is behind it.</p>
+  </div>
+
+  <div class="data-table">
+    <table class="data-table">
+      <thead>
+        <tr><th>Corporate AI Setup</th><th>pi-ai Config</th><th>Notes</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Azure OpenAI (most common)</td>
+          <td><code>getModel('azure-openai', 'gpt-4o')</code></td>
+          <td>Use company's existing deployment. API key via server-side env vars. Users never see it.</td>
+        </tr>
+        <tr>
+          <td>Microsoft Copilot / M365</td>
+          <td>Route through Azure OpenAI endpoint</td>
+          <td>Copilot uses Azure OpenAI under the hood. Same deployment, different SKU.</td>
+        </tr>
+        <tr>
+          <td>Anthropic (direct)</td>
+          <td><code>getModel('anthropic', 'claude-sonnet-4')</code></td>
+          <td>Best reasoning for complex SAP error recovery. Can use alongside Azure for different tiers.</td>
+        </tr>
+        <tr>
+          <td>Self-hosted (Llama, Mistral)</td>
+          <td><code>getModel('ollama', 'llama3.3')</code></td>
+          <td>For air-gapped environments. Use pi-pods to deploy. Trade quality for data sovereignty.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ═══ 06 VBS UPLOAD ═══ -->
+<section>
+  <h2><span class="num">06</span> VBS Script Upload & Conversion</h2>
+  <p class="section-desc">Users record a macro in SAP GUI, upload the .vbs file, and the system converts it to a reusable deterministic workflow.</p>
+
+  <div class="flow-steps">
+    <div class="flow-step">
+      <div class="line-col"><div class="dot-marker"></div><div class="line-segment"></div></div>
+      <div class="flow-content">
+        <h4>1. User records in SAP GUI</h4>
+        <p>User opens SAP GUI → clicks Script Recording → performs the transaction manually → stops recording. SAP generates a <code>.vbs</code> file with every <code>session.findById(...)</code> call.</p>
+      </div>
+    </div>
+    <div class="flow-step">
+      <div class="line-col"><div class="dot-marker warn"></div><div class="line-segment"></div></div>
+      <div class="flow-content">
+        <h4>2. User uploads .vbs to the web app or Teams</h4>
+        <p>Drag and drop in the chat (web app uses <code>pi-web-ui</code> attachments, Teams uses file attachment). User says: "Convert this recording into a reusable workflow."</p>
+      </div>
+    </div>
+    <div class="flow-step">
+      <div class="line-col"><div class="dot-marker purple"></div><div class="line-segment"></div></div>
+      <div class="flow-content">
+        <h4>3. VBS Parser extracts structured steps</h4>
+        <p>The <code>sap_upload_vbs</code> tool parses the VBScript deterministically (regex + AST, no LLM needed). It extracts: T-code, field IDs, literal values, button presses, virtual key sends. Groups them into logical steps.</p>
+      </div>
+    </div>
+    <div class="flow-step">
+      <div class="line-col"><div class="dot-marker"></div><div class="line-segment"></div></div>
+      <div class="flow-content">
+        <h4>4. LLM identifies parameters</h4>
+        <p>The LLM reviews the extracted steps and identifies which literal values should become parameters (e.g., "1000" in the vendor field → <code>${vendor}</code>). It also suggests assertion types for each step and adds a confirmation gate before saves.</p>
+      </div>
+    </div>
+    <div class="flow-step">
+      <div class="line-col"><div class="dot-marker warn"></div><div class="line-segment"></div></div>
+      <div class="flow-content">
+        <h4>5. User reviews & confirms</h4>
+        <p>The agent presents the generated workflow as a structured summary: "I found 6 steps, 4 parameters (vendor, material, quantity, plant), 1 save action. Shall I save this as <code>create_purchase_order</code>?" User confirms, workflow is stored.</p>
+      </div>
+    </div>
+    <div class="flow-step">
+      <div class="line-col"><div class="dot-marker"></div><div class="line-segment"></div></div>
+      <div class="flow-content">
+        <h4>6. Workflow is now reusable</h4>
+        <p>Anyone can now say "Run create_purchase_order with vendor 2000, material SCREW-M6, quantity 500, plant 2000" and the deterministic executor runs it — same steps every time.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="code-block">
+    <div class="code-header">
+      <span class="dot r"></span><span class="dot y"></span><span class="dot g"></span>
+      <span>VBS parser — deterministic extraction (no LLM)</span>
+    </div>
+    <pre>
+<span class="cm">// Input: raw VBS from SAP recorder</span>
+session.findById(<span class="str">"wnd[0]/tbar[0]/okcd"</span>).text = <span class="str">"/nME21N"</span>
+session.findById(<span class="str">"wnd[0]"</span>).sendVKey <span class="num">0</span>
+session.findById(<span class="str">"wnd[0]/usr/.../ctxtMEPO_TOPLINE-LIFNR"</span>).text = <span class="str">"1000"</span>
+session.findById(<span class="str">"wnd[0]/usr/.../ctxtMEPO_TOPLINE-EKORG"</span>).text = <span class="str">"1000"</span>
+session.findById(<span class="str">"wnd[0]"</span>).sendVKey <span class="num">0</span>
+session.findById(<span class="str">"wnd[0]/tbar[0]/btn[11]"</span>).press
+
+<span class="cm">// Parser output: structured steps</span>
+[
+  { <span class="prop">action</span>: <span class="str">"set_okcode"</span>,   <span class="prop">value</span>: <span class="str">"/nME21N"</span> },
+  { <span class="prop">action</span>: <span class="str">"sendVKey"</span>,    <span class="prop">key</span>: <span class="num">0</span> },
+  { <span class="prop">action</span>: <span class="str">"set_field"</span>,   <span class="prop">id</span>: <span class="str">"...LIFNR"</span>, <span class="prop">value</span>: <span class="str">"1000"</span>,  <span class="prop">literal</span>: <span class="bool">true</span> },
+  { <span class="prop">action</span>: <span class="str">"set_field"</span>,   <span class="prop">id</span>: <span class="str">"...EKORG"</span>, <span class="prop">value</span>: <span class="str">"1000"</span>,  <span class="prop">literal</span>: <span class="bool">true</span> },
+  { <span class="prop">action</span>: <span class="str">"sendVKey"</span>,    <span class="prop">key</span>: <span class="num">0</span> },
+  { <span class="prop">action</span>: <span class="str">"press"</span>,       <span class="prop">id</span>: <span class="str">"...btn[11]"</span>,  <span class="prop">isSave</span>: <span class="bool">true</span> },  <span class="cm">// ← auto-detected</span>
+]
+
+<span class="cm">// Then LLM parameterizes: "1000" in LIFNR → ${vendor}</span>
+<span class="cm">// And adds: assertions, gate before save, extract after save</span>
+</pre>
+  </div>
+</section>
+
+<!-- ═══ 07 TOOL DEFINITIONS ═══ -->
+<section>
+  <h2><span class="num">07</span> Agent Tool Definitions</h2>
+  <p class="section-desc">Four tools registered with pi-agent-core. The LLM sees these and uses them.</p>
+
+  <table class="data-table">
+    <thead>
+      <tr><th>Tool</th><th>Purpose</th><th>Deterministic?</th><th>When Used</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><code>sap_list_workflows</code></td>
+        <td>Returns all available workflow IDs, descriptions, and parameter schemas</td>
+        <td>✓ Yes</td>
+        <td>LLM calls this first to discover what it can do</td>
+      </tr>
+      <tr>
+        <td><code>sap_execute_workflow</code></td>
+        <td>Runs a workflow by ID with provided parameters. Returns success/fail + extracted data.</td>
+        <td>✓ Yes — the executor is pure code</td>
+        <td>Main execution path. LLM provides workflow ID + params, executor does the rest.</td>
+      </tr>
+      <tr>
+        <td><code>sap_upload_vbs</code></td>
+        <td>Parses an uploaded VBS file, extracts steps, then asks LLM to parameterize. Saves new workflow.</td>
+        <td>Hybrid — parsing is deterministic, parameterization uses LLM</td>
+        <td>When user uploads a .vbs file attachment</td>
+      </tr>
+      <tr>
+        <td><code>sap_recover</code></td>
+        <td>Constrained recovery actions: dismiss popup, fill unexpected field, retry step, or abort.</td>
+        <td>✓ Yes — actions are from a fixed set</td>
+        <td>Only during error recovery when an assertion fails</td>
+      </tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ═══ 08 USER EXPERIENCE ═══ -->
+<section>
+  <h2><span class="num">08</span> User Experience Flows</h2>
+  <p class="section-desc">What corporate users actually see and do.</p>
+
+  <div class="card-grid">
+    <div class="card">
+      <h3><span class="icon icon-green">💬</span> Flow A: Chat → Run Workflow</h3>
+      <p><strong>User:</strong> "Create a purchase order for vendor 1000, 500 bolts to plant 1000"<br><strong>Agent:</strong> "Running create_purchase_order... Step 1/4 ✓ Opened ME21N... Step 2/4 ✓ Header filled... Step 3/4 ✓ Line item added... Ready to save. [Approve] [Cancel]"<br><strong>User:</strong> [clicks Approve]<br><strong>Agent:</strong> "PO 4500012345 created ✓"</p>
+    </div>
+    <div class="card">
+      <h3><span class="icon icon-gold">📎</span> Flow B: Upload VBS → Create Workflow</h3>
+      <p><strong>User:</strong> drags recording.vbs into chat + "Convert this to a workflow"<br><strong>Agent:</strong> "I found 8 steps for transaction VA01. I detected 5 values that should be parameters: order type, sold-to, material, quantity, plant. Does this look right?"<br><strong>User:</strong> "Yes, save it as create_sales_order"<br><strong>Agent:</strong> "Saved ✓ You can now run it with: Run create_sales_order with..."</p>
+    </div>
+    <div class="card">
+      <h3><span class="icon icon-purple">📊</span> Flow C: Batch Processing</h3>
+      <p><strong>User:</strong> uploads orders.xlsx + "Run create_purchase_order for each row"<br><strong>Agent:</strong> "Found 50 rows. Starting batch... Row 1 ✓ PO 4500012345... Row 2 ✓ PO 4500012346... Row 3 ✗ Vendor 9999 not found (skipped)..."<br>Sends summary card at end with success/fail counts.</p>
+    </div>
+    <div class="card">
+      <h3><span class="icon icon-teams">📱</span> Flow D: Teams Quick Action</h3>
+      <p><strong>User in Teams:</strong> "@SAPBot release PO 4500012345"<br><strong>Bot:</strong> [Adaptive Card] "Release PO 4500012345? Release group: 01. [Approve] [Reject]"<br><strong>User:</strong> taps Approve<br><strong>Bot:</strong> "PO 4500012345 released ✓"</p>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ 09 DEPLOYMENT ═══ -->
+<section>
+  <h2><span class="num">09</span> Deployment Model</h2>
+  <p class="section-desc">Fits into typical corporate infra: Azure for the web app + bot, Windows machine for SAP bridge.</p>
+
+  <div class="arch-diagram"><pre>
+  <span class="teams">Azure / Corporate Cloud</span>
+  ┌────────────────────────────────────────────────────┐
+  │                                                    │
+  │  ┌──────────────┐  ┌───────────────────────────┐  │
+  │  │ <span class="hl">Web App</span>       │  │ <span class="teams">Teams Bot Registration</span>   │  │
+  │  │ (Azure App    │  │ (Azure Bot Service)       │  │
+  │  │  Service)     │  │                           │  │
+  │  │              │  │  Messaging endpoint →      │  │
+  │  │ Serves:      │  │  same App Service          │  │
+  │  │ • Static SPA │  │                           │  │
+  │  │ • API routes │  │                           │  │
+  │  │ • pi-proxy   │  │                           │  │
+  │  └──────┬───────┘  └───────────────────────────┘  │
+  │         │                                          │
+  │  ┌──────┴────────────────────────────────┐         │
+  │  │ <span class="hl2">Backend</span> (Node.js on same App Service)  │         │
+  │  │ • pi-ai → Azure OpenAI endpoint      │         │
+  │  │ • pi-agent-core → Agent loop          │         │
+  │  │ • SAP tools + Workflow executor       │         │
+  │  │ • Workflow JSON storage (Azure Blob)  │         │
+  │  └──────────────────┬────────────────────┘         │
+  │                     │ WebSocket (outbound)         │
+  └─────────────────────┼──────────────────────────────┘
+                        │
+          ┌─────────────▼─────────────────────────┐
+          │ <span class="sap">Corporate Network / Windows Server</span>     │
+          │                                       │
+          │  SAP GUI Bridge (Python)              │
+          │  ├── WebSocket server on :8765        │
+          │  ├── win32com.client → sapfewse.ocx   │
+          │  └── SAP GUI for Windows              │
+          │      └── Connected to SAP ERP         │
+          └───────────────────────────────────────┘</pre></div>
+
+  <div class="callout">
+    <div class="ct warn">Network Consideration</div>
+    <p>The SAP GUI bridge must run on a machine with SAP GUI installed (typically inside the corporate network or on a Citrix/RDP server). The backend connects to the bridge via WebSocket over the corporate network. For cloud-hosted backends, a VPN or Azure ExpressRoute is needed. Alternatively, host the entire backend on-premises alongside the bridge.</p>
+  </div>
+</section>
+
+<!-- ═══ 10 BUILD PLAN ═══ -->
+<section>
+  <h2><span class="num">10</span> Build Plan — Weeks, Not Months</h2>
+  <p class="section-desc">We're reusing 70%+ of the stack. Here's what we actually build.</p>
+
+  <div class="flow-steps">
+    <div class="flow-step">
+      <div class="line-col"><div class="dot-marker"></div><div class="line-segment"></div></div>
+      <div class="flow-content">
+        <h4>Week 1-2: SAP Bridge + Workflow Executor</h4>
+        <p>Python bridge with COM connection. WebSocket server. Workflow JSON schema. Executor that handles <code>transaction</code>, <code>fill_fields</code>, <code>press</code>, <code>sendVKey</code>, <code>read_status</code>, assertions. Test with one workflow (ME21N) on sandbox.</p>
+      </div>
+    </div>
+    <div class="flow-step">
+      <div class="line-col"><div class="dot-marker warn"></div><div class="line-segment"></div></div>
+      <div class="flow-content">
+        <h4>Week 3: Web App with pi-web-ui</h4>
+        <p>Scaffold web app with <code>pi-web-ui</code> components. Wire up <code>pi-agent-core</code> Agent with SAP tools. Connect to Azure OpenAI (or whatever the company uses). Add <code>pi-proxy</code> for API key management. End-to-end: user chats → workflow executes → result appears.</p>
+      </div>
+    </div>
+    <div class="flow-step">
+      <div class="line-col"><div class="dot-marker purple"></div><div class="line-segment"></div></div>
+      <div class="flow-content">
+        <h4>Week 4: VBS Upload + Converter</h4>
+        <p>Build VBS parser (regex-based, deterministic). Wire as <code>sap_upload_vbs</code> tool. LLM parameterization step. Test with 5+ recorded scripts from different transactions. Store generated workflows.</p>
+      </div>
+    </div>
+    <div class="flow-step">
+      <div class="line-col"><div class="dot-marker teams"></div><div class="line-segment"></div></div>
+      <div class="flow-content">
+        <h4>Week 5: Teams Bot</h4>
+        <p>Register bot with Azure Bot Service. Build Teams adapter using Teams SDK. Adaptive Cards for responses + confirmation gates. File attachment handling for VBS uploads. Deploy to same App Service as web app.</p>
+      </div>
+    </div>
+    <div class="flow-step">
+      <div class="line-col"><div class="dot-marker"></div><div class="line-segment"></div></div>
+      <div class="flow-content">
+        <h4>Week 6: Batch + Polish</h4>
+        <p>Batch processing from XLSX/CSV uploads. Confirmation gates in both web and Teams. Error recovery flow. Workflow library sidebar in web app. Corporate branding pass. SSO integration.</p>
+      </div>
+    </div>
+    <div class="flow-step">
+      <div class="line-col"><div class="dot-marker warn"></div><div class="line-segment"></div></div>
+      <div class="flow-content">
+        <h4>Week 7-8: Testing + Pilot</h4>
+        <p>Test against real SAP system with 10+ workflows. Expand VBS converter for edge cases (table controls, popups, tree nodes). Pilot with 5-10 users. Collect workflow recordings from users to build the library. Harden error handling.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ 11 SUMMARY ═══ -->
+<section>
+  <h2><span class="num">11</span> Summary: What We Ship</h2>
+
+  <div class="card-grid three">
+    <div class="card">
+      <h3><span class="icon icon-green">🌐</span> Web App</h3>
+      <p>Chat-based SAP automation. Upload VBS, run workflows, batch process. Built on <code>pi-web-ui</code>. Deployed to Azure.</p>
+    </div>
+    <div class="card">
+      <h3><span class="icon icon-teams">💬</span> Teams Bot</h3>
+      <p>Same capabilities in Teams. Adaptive Cards for approvals. @mention to run workflows. Notifications for batch jobs.</p>
+    </div>
+    <div class="card">
+      <h3><span class="icon icon-gold">⚙️</span> Workflow Engine</h3>
+      <p>Deterministic JSON executor. Assertions at every step. Confirmation gates. LLM recovery for unexpected screens.</p>
+    </div>
+    <div class="card">
+      <h3><span class="icon icon-purple">📎</span> VBS Converter</h3>
+      <p>Upload SAP recordings → parameterized workflows. Deterministic parsing + LLM parameterization. Non-technical users can create workflows.</p>
+    </div>
+    <div class="card">
+      <h3><span class="icon icon-blue">🔌</span> SAP Bridge</h3>
+      <p>Python + pywin32 on Windows. WebSocket API. Drives SAP GUI Scripting COM. Runs on-prem or Citrix.</p>
+    </div>
+    <div class="card">
+      <h3><span class="icon icon-green">🏢</span> Corporate LLM</h3>
+      <p>Plugs into Azure OpenAI, Anthropic, or self-hosted. Uses whatever AI the company already pays for. Zero vendor lock-in via <code>pi-ai</code>.</p>
+    </div>
+  </div>
+
+  <div class="callout green">
+    <div class="ct green">What we didn't build</div>
+    <p>Chat UI (pi-web-ui), LLM communication (pi-ai), agent loop (pi-agent-core), CORS proxy (pi-proxy), file attachment handling (pi-web-ui), session storage (pi-web-ui), markdown rendering (pi-web-ui), streaming (pi-agent-core). <strong>All reused from pi-mono.</strong> We only wrote: SAP bridge, workflow executor, VBS parser, Teams adapter, and 4 tool definitions. That's the product.</p>
+  </div>
+</section>
+
+</div>
+
+<footer>
+  <div class="container">
+    SAP GUI Agent v3 — Corporate Web + Teams — pi-mono Powered — March 2026
+  </div>
+</footer>
+
+</body>
+</html>
