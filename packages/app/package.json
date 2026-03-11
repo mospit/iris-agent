@@ -1,0 +1,25 @@
+{
+  "name": "@iris/app",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "dist/server/index.js",
+  "scripts": {
+    "build": "node build.mjs",
+    "dev": "node build.mjs --dev",
+    "start": "node dist/server/index.js"
+  },
+  "dependencies": {
+    "@iris/tools": "*",
+    "@iris/vbs-parser": "*",
+    "@iris/workflow-executor": "*",
+    "express": "^5.1.0",
+    "ws": "^8.18.0"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.0",
+    "@types/ws": "^8.5.13",
+    "esbuild": "^0.25.0",
+    "typescript": "^5.7.0"
+  }
+}
