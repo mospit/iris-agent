@@ -1,0 +1,17 @@
+{
+  "id": "mmbe_stock_overview",
+  "name": "Check Stock Overview",
+  "description": "View stock levels for a material across plants in MMBE. Shows unrestricted, quality inspection, blocked, and in-transit stock.",
+  "transaction": "MMBE",
+  "parameters": [
+    { "name": "material", "label": "Material Number", "type": "string", "required": true, "default": "" },
+    { "name": "plant", "label": "Plant", "type": "string", "required": false, "default": "" },
+    { "name": "storage_location", "label": "Storage Location", "type": "string", "required": false, "default": "" }
+  ],
+  "steps": [
+    { "action": "setField", "target": "wnd[0]/usr/ctxtMATNR", "value": "{{material}}", "description": "Enter material number" },
+    { "action": "setField", "target": "wnd[0]/usr/ctxtWERKS", "value": "{{plant}}", "description": "Enter plant (optional)" },
+    { "action": "setField", "target": "wnd[0]/usr/ctxtLGORT", "value": "{{storage_location}}", "description": "Enter storage location (optional)" },
+    { "action": "sendVKey", "value": "0", "description": "Press Enter to execute", "assertion": { "title": "Stock Overview", "expect": "Stock data displayed" } }
+  ]
+}

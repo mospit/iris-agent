@@ -1,0 +1,17 @@
+{
+  "id": "humo_org_structure",
+  "name": "View Organizational Structure",
+  "description": "Display organizational structure in HUMO. Shows org units, positions, and employees.",
+  "transaction": "HUMO",
+  "parameters": [
+    { "name": "org_unit", "label": "Organizational Unit", "type": "string", "required": true, "default": "" },
+    { "name": "start_date", "label": "Start Date (DD.MM.YYYY)", "type": "string", "required": false, "default": "" },
+    { "name": "end_date", "label": "End Date (DD.MM.YYYY)", "type": "string", "required": false, "default": "" }
+  ],
+  "steps": [
+    { "action": "setField", "target": "wnd[0]/usr/ctxtP_ORGEH", "value": "{{org_unit}}", "description": "Enter organizational unit" },
+    { "action": "setField", "target": "wnd[0]/usr/ctxtP_BEGDA", "value": "{{start_date}}", "description": "Enter start date" },
+    { "action": "setField", "target": "wnd[0]/usr/ctxtP_ENDDA", "value": "{{end_date}}", "description": "Enter end date" },
+    { "action": "sendVKey", "value": "8", "description": "Execute (F8)", "assertion": { "title": "Organizational Structure", "expect": "Org structure displayed" } }
+  ]
+}

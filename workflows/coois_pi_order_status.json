@@ -1,0 +1,15 @@
+{
+  "id": "coois_pi_order_status",
+  "name": "Check Production Order Status",
+  "description": "Look up production order details in COOIS_PI. Shows order status, material, quantities, and system status.",
+  "transaction": "COOIS_PI",
+  "parameters": [
+    { "name": "order_number", "label": "Production Order Number", "type": "string", "required": true, "default": "" },
+    { "name": "plant", "label": "Plant", "type": "string", "required": false, "default": "" }
+  ],
+  "steps": [
+    { "action": "setField", "target": "wnd[0]/usr/ctxtS_AUFNR-LOW", "value": "{{order_number}}", "description": "Enter production order number" },
+    { "action": "setField", "target": "wnd[0]/usr/ctxtP_WERKS", "value": "{{plant}}", "description": "Enter plant (optional)" },
+    { "action": "sendVKey", "value": "8", "description": "Execute report (F8)", "assertion": { "title": "Production Orders", "expect": "Results screen displayed" } }
+  ]
+}

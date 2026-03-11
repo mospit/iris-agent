@@ -1,0 +1,14 @@
+{
+  "name": "iris-agent",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "npm run build -w packages/tools && npm run build -w packages/vbs-parser && npm run build -w packages/workflow-executor && npm run build -w packages/app",
+    "dev": "npm run dev -w packages/app",
+    "start": "npm run start -w packages/app"
+  }
+}
