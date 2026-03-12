@@ -33,7 +33,10 @@ const clientConfig = {
   define: {
     "process.env.NODE_ENV": isDev ? '"development"' : '"production"',
   },
-  external: ["fs", "path", "ws", "child_process", "url", "net", "tls", "http", "https", "crypto", "stream", "zlib", "events", "buffer", "util"],
+  alias: {
+    ws: join(__dirname, "src/client/ws-shim.ts"),
+  },
+  external: ["fs", "path", "child_process", "url", "net", "tls", "http", "https", "crypto", "stream", "zlib", "events", "buffer", "util"],
   loader: {
     ".css": "css",
   },
