@@ -10,10 +10,11 @@
     "start": "node dist/server/index.js"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.78.0",
     "@iris/tools": "*",
     "@iris/vbs-parser": "*",
     "@iris/workflow-executor": "*",
+    "@mariozechner/pi-agent": "^0.9.0",
+    "@mariozechner/pi-ai": "^0.57.1",
     "express": "^5.1.0",
     "ws": "^8.18.0"
   },

@@ -1,20 +1,28 @@
-import Anthropic from "@anthropic-ai/sdk";
 import type { Request, Response } from "express";
-import type { Workflow } from "@iris/tools";
-import { BridgeClient } from "@iris/tools";
+import { BridgeClient, WorkflowStore } from "@iris/tools";
 import {
   createListWorkflowsTool,
   createExecuteWorkflowTool,
   createUploadVbsTool,
   createRecoverTool,
 } from "@iris/tools";
-import { WorkflowStore } from "@iris/tools";
 import { executeWorkflow } from "@iris/workflow-executor";
 import {
   parseVbs,
   detectParameterCandidates,
   applyParameters,
 } from "@iris/vbs-parser";
+import {
+  Agent,
+  ProviderTransport,
+} from "@mariozechner/pi-agent";
+import {
+  getModel,
+  getModels,
+  getProviders,
+  type Model,
+} from "@mariozechner/pi-ai";
+import type { AgentEvent } from "@mariozechner/pi-agent";
 
 const SAP_SYSTEM_PROMPT = `You are Iris, a SAP automation assistant. You help users run SAP transactions through saved workflows.
 
@@ -33,35 +41,21 @@ Rules:
 
 Available workflows will be listed in tool results. If no workflows exist yet, guide the user to upload a VBS recording.`;
 
-// Convert our tool schemas to Claude API tool format
-function toolsToClaude(tools: any[]): Anthropic.Tool[] {
-  return tools.map((t) => ({
-    name: t.name,
-    description: t.description,
-    input_schema: t.parameters as Anthropic.Tool.InputSchema,
-  }));
-}
+// Default model — can be changed via /api/model endpoint
+const DEFAULT_PROVIDER = "github-copilot";
+const DEFAULT_MODEL_ID = "gpt-4o";
 
 interface ChatDeps {
   bridge: BridgeClient;
   store: WorkflowStore;
 }
 
-// Gate approvals pending from the client
-const pendingGates = new Map<
-  string,
-  { resolve: (approved: boolean) => void }
->();
-
 export function createChatHandler(deps: ChatDeps) {
-  const client = new Anthropic();
-
   // Create tools with server-side bridge and store
   const requestGateApproval = async (
     _stepIndex: number,
     description: string,
   ): Promise<boolean> => {
-    // For now, auto-approve gates (will be upgraded to chat-based later)
     console.log(`Gate auto-approved: ${description}`);
     return true;
   };
@@ -82,16 +76,28 @@ export function createChatHandler(deps: ChatDeps) {
     createRecoverTool(deps.bridge),
   ];
 
-  const claudeTools = toolsToClaude(tools);
-  const toolMap = new Map(tools.map((t) => [t.name, t]));
+  // Current model (mutable via /api/model)
+  let currentModel: Model<any> = getModel(DEFAULT_PROVIDER, DEFAULT_MODEL_ID);
 
-  return async (req: Request, res: Response) => {
-    const { messages } = req.body as {
-      messages: Anthropic.MessageParam[];
-    };
+  // Create agent with ProviderTransport (calls LLM providers directly)
+  const transport = new ProviderTransport();
 
-    if (!messages || !Array.isArray(messages)) {
-      res.status(400).json({ error: "messages array required" });
+  const agent = new Agent({
+    transport,
+    initialState: {
+      systemPrompt: SAP_SYSTEM_PROMPT,
+      model: currentModel,
+      tools: tools as any,
+      thinkingLevel: "off",
+    },
+  });
+
+  // Chat endpoint: POST /api/chat
+  const chatHandler = async (req: Request, res: Response) => {
+    const { message } = req.body as { message: string };
+
+    if (!message || typeof message !== "string") {
+      res.status(400).json({ error: "message string required" });
       return;
     }
 
@@ -105,119 +111,87 @@ export function createChatHandler(deps: ChatDeps) {
       res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
     };
 
+    // Subscribe to agent events and relay to SSE
+    const unsub = agent.subscribe((e: AgentEvent) => {
+      switch (e.type) {
+        case "message_update": {
+          const evt = e.assistantMessageEvent;
+          if (evt.type === "text_delta") {
+            send("text", { text: evt.delta });
+          }
+          break;
+        }
+        case "tool_execution_start":
+          send("tool_call", { name: e.toolName, input: e.args });
+          break;
+        case "tool_execution_end": {
+          const text =
+            typeof e.result === "string"
+              ? e.result
+              : e.result?.content
+                  ?.map((c: any) => c.text)
+                  .filter(Boolean)
+                  .join("\n") || "Done";
+          send("tool_result", {
+            name: e.toolName,
+            text,
+            is_error: e.isError,
+          });
+          break;
+        }
+        case "agent_end":
+          // Will be handled after prompt() resolves
+          break;
+      }
+    });
+
     try {
-      await agentLoop(client, claudeTools, toolMap, messages, send);
+      await agent.prompt(message);
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       send("error", { error: msg });
     }
 
+    unsub();
     send("done", {});
     res.end();
   };
-}
 
-async function agentLoop(
-  client: Anthropic,
-  claudeTools: Anthropic.Tool[],
-  toolMap: Map<string, any>,
-  messages: Anthropic.MessageParam[],
-  send: (event: string, data: any) => void,
-) {
-  const MAX_TURNS = 10;
+  // Model management endpoints
+  const setModelHandler = (req: Request, res: Response) => {
+    const { provider, modelId } = req.body as {
+      provider: string;
+      modelId: string;
+    };
 
-  for (let turn = 0; turn < MAX_TURNS; turn++) {
-    // Stream response from Claude
-    const stream = client.messages.stream({
-      model: "claude-sonnet-4-20250514",
-      max_tokens: 4096,
-      system: SAP_SYSTEM_PROMPT,
-      tools: claudeTools,
-      messages,
+    try {
+      currentModel = getModel(provider as any, modelId);
+      agent.setModel(currentModel);
+      res.json({
+        ok: true,
+        model: { id: currentModel.id, name: currentModel.name, provider },
+      });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      res.status(400).json({ error: msg });
+    }
+  };
+
+  const getModelsHandler = (_req: Request, res: Response) => {
+    const providers = getProviders();
+    const result: Record<string, { id: string; name: string }[]> = {};
+    for (const p of providers) {
+      result[p] = getModels(p).map((m) => ({ id: m.id, name: m.name }));
+    }
+    res.json({
+      current: {
+        provider: currentModel.provider,
+        modelId: currentModel.id,
+        name: currentModel.name,
+      },
+      providers: result,
     });
+  };
 
-    // Collect text and tool_use blocks
-    let fullText = "";
-    const toolUseBlocks: Anthropic.ContentBlock[] = [];
-
-    stream.on("text", (text) => {
-      fullText += text;
-      send("text", { text });
-    });
-
-    const response = await stream.finalMessage();
-
-    // Collect tool_use blocks
-    for (const block of response.content) {
-      if (block.type === "tool_use") {
-        toolUseBlocks.push(block);
-      }
-    }
-
-    // If no tool calls, we're done
-    if (response.stop_reason !== "tool_use" || toolUseBlocks.length === 0) {
-      // Add assistant message to history for caller
-      send("assistant_message", { content: response.content });
-      return;
-    }
-
-    // Execute tool calls
-    const assistantContent = response.content;
-    const toolResults: Anthropic.ToolResultBlockParam[] = [];
-
-    for (const block of toolUseBlocks) {
-      if (block.type !== "tool_use") continue;
-
-      send("tool_call", { name: block.name, input: block.input });
-
-      const tool = toolMap.get(block.name);
-      if (!tool) {
-        toolResults.push({
-          type: "tool_result",
-          tool_use_id: block.id,
-          content: `Tool "${block.name}" not found`,
-          is_error: true,
-        });
-        continue;
-      }
-
-      try {
-        const result = await tool.execute(block.id, block.input);
-        const text =
-          result.content
-            ?.map((c: any) => c.text)
-            .filter(Boolean)
-            .join("\n") || "Done";
-
-        send("tool_result", { name: block.name, text });
-
-        toolResults.push({
-          type: "tool_result",
-          tool_use_id: block.id,
-          content: text,
-        });
-      } catch (err) {
-        const errMsg = err instanceof Error ? err.message : String(err);
-        send("tool_result", {
-          name: block.name,
-          text: errMsg,
-          is_error: true,
-        });
-        toolResults.push({
-          type: "tool_result",
-          tool_use_id: block.id,
-          content: errMsg,
-          is_error: true,
-        });
-      }
-    }
-
-    // Add assistant + tool results to messages and loop
-    messages.push({ role: "assistant", content: assistantContent });
-    messages.push({ role: "user", content: toolResults });
-  }
-
-  send("text", {
-    text: "\n\n[Agent loop reached maximum turns. Please continue the conversation.]",
-  });
+  return { chatHandler, setModelHandler, getModelsHandler };
 }

@@ -26,9 +26,11 @@ app.get("/api/health", (_req, res) => {
 const bridge = new BridgeClient("ws://localhost:8765");
 const store = new WorkflowStore(WORKFLOWS_DIR);
 
-// Chat endpoint (SSE streaming)
-const chatHandler = createChatHandler({ bridge, store });
+// Chat + model endpoints
+const { chatHandler, setModelHandler, getModelsHandler } = createChatHandler({ bridge, store });
 app.post("/api/chat", chatHandler);
+app.post("/api/model", setModelHandler);
+app.get("/api/models", getModelsHandler);
 
 // Start mock bridge as child process
 let bridgeProcess: ReturnType<typeof spawn> | null = null;
