@@ -1,122 +1,179 @@
-import type { Workflow } from "@iris/tools";
-import { BridgeClient } from "@iris/tools";
-import { createListWorkflowsTool, createExecuteWorkflowTool, createUploadVbsTool, createRecoverTool } from "@iris/tools";
-import { executeWorkflow } from "@iris/workflow-executor";
-import { parseVbs, detectParameterCandidates, applyParameters } from "@iris/vbs-parser";
-
-// Browser-compatible workflow store using localStorage
-class BrowserWorkflowStore {
-  private key = "iris-workflows";
-
-  list(): Workflow[] {
-    const data = localStorage.getItem(this.key);
-    return data ? JSON.parse(data) : [];
-  }
-
-  get(id: string): Workflow | null {
-    return this.list().find((w) => w.id === id) || null;
-  }
-
-  save(workflow: Workflow): void {
-    const workflows = this.list().filter((w) => w.id !== workflow.id);
-    workflows.push(workflow);
-    localStorage.setItem(this.key, JSON.stringify(workflows));
-  }
-
-  async loadFromServer(): Promise<void> {
-    // Load pre-built workflows from server if not already in localStorage
-    if (this.list().length > 0) return;
-
-    const workflowIds = ["coois_pi_order_status", "humo_org_structure", "mmbe_stock_overview"];
-    for (const id of workflowIds) {
-      try {
-        const res = await fetch(`/api/workflows/${id}.json`);
-        if (res.ok) {
-          const workflow = await res.json();
-          this.save(workflow);
-        }
-      } catch {
-        // Workflow not available yet, skip
-      }
-    }
-  }
+interface Message {
+  role: "user" | "assistant";
+  content: string;
 }
 
-const SAP_SYSTEM_PROMPT = `You are Iris, a SAP automation assistant. You help users run SAP transactions through saved workflows.
-
-Your capabilities:
-- List available workflows and their required parameters
-- Execute workflows when the user provides enough information
-- Convert VBS recordings into reusable workflows
-- Help recover from errors during execution
-
-Rules:
-- Never guess parameter values. Ask the user if something is missing.
-- Always confirm the workflow and parameters with the user before executing.
-- When a gate is reached during execution, explain what will happen and ask for approval.
-- If execution fails, use sap_recover to read the screen state and suggest recovery options.
-- When a user uploads a .vbs file, use sap_upload_vbs to parse it. Present the detected steps and suggest parameter names. Wait for user confirmation before saving.
-
-Available workflows will be listed in tool results. If no workflows exist yet, guide the user to upload a VBS recording.`;
+const SAP_TOOLS = [
+  "sap_list_workflows",
+  "sap_execute_workflow",
+  "sap_upload_vbs",
+  "sap_recover",
+];
 
 export async function initApp(container: HTMLElement) {
-  // SAP bridge client (connects to WebSocket on localhost)
-  const bridge = new BridgeClient("ws://localhost:8765");
-  try {
-    await bridge.connect();
-    console.log("Connected to SAP bridge");
-  } catch (err) {
-    console.warn("SAP bridge not available, tools will fail gracefully:", err);
-  }
+  const messages: Message[] = [];
+  let isStreaming = false;
 
-  // Workflow store (browser-compatible)
-  const workflowStore = new BrowserWorkflowStore();
-  await workflowStore.loadFromServer();
-
-  // Gate approval via confirm dialog (prototype — upgrade to chat-based later)
-  const requestGateApproval = async (_stepIndex: number, description: string): Promise<boolean> => {
-    return window.confirm(`SAP is about to: ${description}\n\nProceed?`);
-  };
-
-  // Create tools
-  const tools = [
-    createListWorkflowsTool(workflowStore as any),
-    createExecuteWorkflowTool(workflowStore as any, bridge, requestGateApproval, executeWorkflow),
-    createUploadVbsTool(workflowStore as any, { parseVbs, detectParameterCandidates, applyParameters }),
-    createRecoverTool(bridge),
-  ];
-
-  // Render a simple standalone UI (pi-web-ui would be integrated here in production)
   container.innerHTML = `
     <div style="display:flex;flex-direction:column;height:100vh;background:#1a1a1a;color:#e0e0e0;">
       <header style="padding:1rem 1.5rem;background:#0d6e4f;color:white;font-size:1.2rem;font-weight:600;">
         Iris — SAP Automation Agent
       </header>
       <div style="flex:1;overflow-y:auto;padding:1.5rem;" id="chat-messages">
-        <div style="color:#8a8479;text-align:center;margin-top:2rem;">
+        <div style="color:#8a8479;text-align:center;margin-top:2rem;" id="welcome">
           <p style="font-size:1.1rem;">Welcome to Iris</p>
           <p style="margin-top:0.5rem;font-size:0.9rem;">SAP GUI automation through natural language chat</p>
           <p style="margin-top:1rem;font-size:0.85rem;color:#666;">
-            ${tools.length} tools loaded: ${tools.map(t => t.name).join(", ")}
-          </p>
-          <p style="margin-top:0.5rem;font-size:0.85rem;color:#666;">
-            ${workflowStore.list().length} workflows available
+            ${SAP_TOOLS.length} tools available: ${SAP_TOOLS.join(", ")}
           </p>
           <p style="margin-top:1.5rem;font-size:0.85rem;color:#555;">
-            Connect a pi-web-ui ChatPanel or LLM provider to start chatting.
+            Try: "What workflows are available?" or "Run the COOIS order status check"
           </p>
         </div>
       </div>
       <div style="padding:1rem 1.5rem;border-top:1px solid #333;">
-        <div style="display:flex;gap:0.5rem;">
-          <input type="text" placeholder="Type a message... (requires pi-web-ui ChatPanel integration)"
+        <form id="chat-form" style="display:flex;gap:0.5rem;">
+          <input type="text" id="chat-input"
+                 placeholder="Type a message..."
                  style="flex:1;padding:0.75rem;border-radius:8px;border:1px solid #333;background:#2a2a2a;color:#e0e0e0;font-size:0.95rem;"
-                 disabled>
-        </div>
+                 autocomplete="off">
+          <button type="submit" id="send-btn"
+                  style="padding:0.75rem 1.5rem;border-radius:8px;border:none;background:#0d6e4f;color:white;font-size:0.95rem;cursor:pointer;">
+            Send
+          </button>
+        </form>
       </div>
     </div>
   `;
 
-  console.log("Iris app initialized with tools:", tools.map(t => t.name));
-  console.log("System prompt:", SAP_SYSTEM_PROMPT.substring(0, 100) + "...");
+  const chatMessages = container.querySelector("#chat-messages") as HTMLElement;
+  const chatForm = container.querySelector("#chat-form") as HTMLFormElement;
+  const chatInput = container.querySelector("#chat-input") as HTMLInputElement;
+  const sendBtn = container.querySelector("#send-btn") as HTMLButtonElement;
+
+  function addMessageBubble(role: "user" | "assistant" | "tool", text: string): HTMLElement {
+    // Remove welcome on first message
+    const welcome = container.querySelector("#welcome");
+    if (welcome) welcome.remove();
+
+    const bubble = document.createElement("div");
+    bubble.style.cssText = `
+      margin-bottom:1rem;padding:0.75rem 1rem;border-radius:12px;max-width:80%;
+      white-space:pre-wrap;word-wrap:break-word;line-height:1.5;font-size:0.95rem;
+    `;
+
+    if (role === "user") {
+      bubble.style.cssText += "background:#0d6e4f;color:white;margin-left:auto;";
+    } else if (role === "tool") {
+      bubble.style.cssText += "background:#2a2a2a;color:#8a8479;border:1px solid #333;font-size:0.85rem;font-family:monospace;";
+    } else {
+      bubble.style.cssText += "background:#2a2a2a;color:#e0e0e0;margin-right:auto;";
+    }
+
+    bubble.textContent = text;
+    chatMessages.appendChild(bubble);
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+    return bubble;
+  }
+
+  function setLoading(loading: boolean) {
+    isStreaming = loading;
+    chatInput.disabled = loading;
+    sendBtn.disabled = loading;
+    sendBtn.textContent = loading ? "..." : "Send";
+    sendBtn.style.opacity = loading ? "0.5" : "1";
+  }
+
+  async function sendMessage(text: string) {
+    if (!text.trim() || isStreaming) return;
+
+    // Add user message
+    messages.push({ role: "user", content: text });
+    addMessageBubble("user", text);
+    chatInput.value = "";
+    setLoading(true);
+
+    // Build API messages format
+    const apiMessages = messages.map((m) => ({
+      role: m.role,
+      content: m.content,
+    }));
+
+    try {
+      const res = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ messages: apiMessages }),
+      });
+
+      if (!res.ok) {
+        const err = await res.text();
+        addMessageBubble("assistant", `Error: ${err}`);
+        setLoading(false);
+        return;
+      }
+
+      // Read SSE stream
+      const reader = res.body!.getReader();
+      const decoder = new TextDecoder();
+      let assistantBubble: HTMLElement | null = null;
+      let assistantText = "";
+      let buffer = "";
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        buffer = lines.pop() || "";
+
+        let eventType = "";
+        for (const line of lines) {
+          if (line.startsWith("event: ")) {
+            eventType = line.slice(7);
+          } else if (line.startsWith("data: ")) {
+            const data = JSON.parse(line.slice(6));
+
+            if (eventType === "text") {
+              if (!assistantBubble) {
+                assistantBubble = addMessageBubble("assistant", "");
+              }
+              assistantText += data.text;
+              assistantBubble.textContent = assistantText;
+              chatMessages.scrollTop = chatMessages.scrollHeight;
+            } else if (eventType === "tool_call") {
+              addMessageBubble("tool", `Calling ${data.name}...`);
+            } else if (eventType === "tool_result") {
+              const prefix = data.is_error ? "Error: " : "";
+              addMessageBubble("tool", `${data.name}: ${prefix}${data.text}`);
+              // Reset for next assistant response
+              assistantBubble = null;
+              assistantText = "";
+            } else if (eventType === "error") {
+              addMessageBubble("assistant", `Error: ${data.error}`);
+            }
+          }
+        }
+      }
+
+      // Save final assistant message
+      if (assistantText) {
+        messages.push({ role: "assistant", content: assistantText });
+      }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      addMessageBubble("assistant", `Connection error: ${msg}`);
+    }
+
+    setLoading(false);
+  }
+
+  chatForm.addEventListener("submit", (e) => {
+    e.preventDefault();
+    sendMessage(chatInput.value);
+  });
+
+  chatInput.focus();
+  console.log("Iris chat UI initialized");
 }
