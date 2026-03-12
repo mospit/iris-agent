@@ -2,6 +2,34 @@
 
 SAP GUI automation agent that lets you run SAP transactions through natural language chat. Built as a TypeScript monorepo with a Python WebSocket bridge to SAP GUI's COM API.
 
+## Prerequisites
+
+### Installing Node.js
+
+**Standard install:** Download the installer from https://nodejs.org (requires admin).
+
+**Without admin privileges (e.g., company machines):** Run these commands in PowerShell:
+
+```powershell
+# Download Node.js zip — no installer, no admin needed
+Invoke-WebRequest -Uri "https://nodejs.org/dist/v22.15.0/node-v22.15.0-win-x64.zip" -OutFile "$env:USERPROFILE\node.zip"
+
+# Extract and rename
+Expand-Archive -Path "$env:USERPROFILE\node.zip" -DestinationPath "$env:USERPROFILE" -Force
+Rename-Item "$env:USERPROFILE\node-v22.15.0-win-x64" "$env:USERPROFILE\node"
+
+# Add to user PATH (persists across sessions)
+[Environment]::SetEnvironmentVariable("Path", "$env:USERPROFILE\node;$env:Path", "User")
+
+# Refresh current session
+$env:Path = "$env:USERPROFILE\node;$env:Path"
+
+# Verify
+node --version
+```
+
+> **Note:** If PowerShell blocks `npm` with a script execution policy error, use Command Prompt (`cmd.exe`) instead, or prefix npm commands with `cmd /c`, e.g., `cmd /c "npm install"`.
+
 ## Quick Start
 
 ```bash
