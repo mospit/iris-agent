@@ -21,6 +21,7 @@ import {
   getModels,
   getProviders,
   type Model,
+  type KnownProvider,
 } from "@mariozechner/pi-ai";
 import type { AgentEvent } from "@mariozechner/pi-agent";
 
@@ -41,9 +42,17 @@ Rules:
 
 Available workflows will be listed in tool results. If no workflows exist yet, guide the user to upload a VBS recording.`;
 
-// Default model — can be changed via /api/model endpoint
-const DEFAULT_PROVIDER = "github-copilot";
-const DEFAULT_MODEL_ID = "gpt-4o";
+// Auto-detect provider from environment, fallback to github-copilot
+function detectDefaults(): { provider: KnownProvider; model: string } {
+  if (process.env.ZAI_API_KEY) return { provider: "zai" as KnownProvider, model: "glm-4.7" };
+  if (process.env.ANTHROPIC_API_KEY || process.env.ANTHROPIC_OAUTH_TOKEN)
+    return { provider: "anthropic" as KnownProvider, model: "claude-sonnet-4" };
+  if (process.env.OPENAI_API_KEY) return { provider: "openai" as KnownProvider, model: "gpt-4o" };
+  return { provider: "github-copilot" as KnownProvider, model: "gpt-4o" };
+}
+
+const { provider: DEFAULT_PROVIDER, model: DEFAULT_MODEL_ID } = detectDefaults();
+console.log(`AI provider: ${DEFAULT_PROVIDER} / ${DEFAULT_MODEL_ID}`);
 
 interface ChatDeps {
   bridge: BridgeClient;
@@ -77,7 +86,7 @@ export function createChatHandler(deps: ChatDeps) {
   ];
 
   // Current model (mutable via /api/model)
-  let currentModel: Model<any> = getModel(DEFAULT_PROVIDER, DEFAULT_MODEL_ID);
+  let currentModel: Model<any> = getModel(DEFAULT_PROVIDER as any, DEFAULT_MODEL_ID);
 
   // Create agent with ProviderTransport (calls LLM providers directly)
   const transport = new ProviderTransport();
